@@ -1,0 +1,24 @@
+JD MCP Duo
+Copyright (c) 2026 JD MCP Duo contributors
+
+This product is built on top of the transformer-api project,
+which provides a unified API over the following decompilers:
+
+  transformer-api  - MIT        https://github.com/nbauma109/transformer-api
+  CFR              - MIT        https://github.com/leibnitz27/cfr
+  Procyon          - Apache 2.0 https://github.com/mstrobel/procyon
+  Fernflower       - Apache 2.0 https://github.com/JetBrains/intellij-community
+  Vineflower       - Apache 2.0 https://github.com/Vineflower/vineflower
+  JADX             - Apache 2.0 https://github.com/skylot/jadx
+  JD-Core v0 / v1  - GPL v3     https://github.com/java-decompiler/jd-gui
+
+This product depends on the following third-party libraries:
+
+  transformer-api                 - MIT
+  Gson (com.google.code.gson)     - Apache 2.0
+  SLF4J (org.slf4j)               - MIT
+  Apache Commons IO               - Apache 2.0
+  Eclipse JDT Core                - EPL 2.0
+  Eclipse JDT Core Manipulation   - EPL 2.0
+  SQLite JDBC (org.xerial)        - Apache 2.0
+  dex-tools (dex2jar)             - Apache 2.0

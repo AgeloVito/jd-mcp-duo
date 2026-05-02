@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+JAVA="$DIST_DIR/runtime/bin/java"
+JAR="$DIST_DIR/lib/jd-mcp-duo.jar"
+
+if [ ! -f "$JAVA" ]; then
+    echo "Error: bundled JRE not found at $JAVA" >&2
+    exit 1
+fi
+
+exec "$JAVA" -Xss10m -jar "$JAR" "$@"

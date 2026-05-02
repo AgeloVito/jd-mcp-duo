@@ -1,0 +1,127 @@
+package tools;
+
+import archive.ClassLocation;
+import archive.InputContainer;
+import archive.InputContainers;
+import model.MCPTool;
+import model.ToolResult;
+import support.JsonUtils;
+import support.ToolResults;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+public class ListClassesTool implements MCPTool {
+    @Override
+    public String getDescription() {
+        return "List classes from a supported archive or directory with normalized class names and package statistics.";
+    }
+
+    @Override
+    public JsonObject getInputSchema() {
+        JsonObject schema = new JsonObject();
+        schema.addProperty("type", "object");
+        JsonObject properties = new JsonObject();
+        addStringProperty(properties, "path", "Path to an archive or directory");
+        addStringProperty(properties, "package", "Optional package prefix filter");
+        addIntegerProperty(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
+        addBooleanProperty(properties, "includeInner", "Include inner classes", false);
+        addBooleanProperty(properties, "detailed", "Include package statistics", false);
+        schema.add("properties", properties);
+        JsonArray required = new JsonArray();
+        required.add("path");
+        schema.add("required", required);
+        return schema;
+    }
+
+    @Override
+    public ToolResult execute(JsonObject arguments) throws Exception {
+        Path path = JsonUtils.getRequiredPath(arguments, "path");
+        if (!Files.exists(path)) {
+            throw new IllegalArgumentException("File not found: " + path);
+        }
+
+        String packageFilter = JsonUtils.getString(arguments, "package", null);
+        Integer releaseVersion = arguments.has("releaseVersion") && !arguments.get("releaseVersion").isJsonNull()
+                ? JsonUtils.getInt(arguments, "releaseVersion", Runtime.version().feature())
+                : null;
+        boolean includeInner = JsonUtils.getBoolean(arguments, "includeInner", false);
+        boolean detailed = JsonUtils.getBoolean(arguments, "detailed", false);
+
+        try (InputContainer container = InputContainers.open(path, releaseVersion)) {
+            List<ClassLocation> classes = container.listClasses(true).stream()
+                    .filter(location -> includeInner || !location.internalName().contains("$"))
+                    .filter(location -> packageFilter == null || location.displayName().startsWith(packageFilter))
+                    .toList();
+
+            Map<String, Integer> packageCounts = new TreeMap<>();
+            JsonArray classArray = new JsonArray();
+            StringBuilder text = new StringBuilder();
+            text.append("Classes in ").append(path).append('\n');
+            text.append("Kind: ").append(container.kind()).append('\n');
+            text.append("Total: ").append(classes.size()).append("\n\n");
+
+            for (ClassLocation location : classes) {
+                String packageName = location.displayName().contains(".")
+                        ? location.displayName().substring(0, location.displayName().lastIndexOf('.'))
+                        : "(default)";
+                packageCounts.merge(packageName, 1, Integer::sum);
+
+                JsonObject classJson = new JsonObject();
+                classJson.addProperty("internalName", location.internalName());
+                classJson.addProperty("displayName", location.displayName());
+                classJson.addProperty("entryName", location.entryName());
+                if (location.multiReleaseVersion() != null) {
+                    classJson.addProperty("multiReleaseVersion", location.multiReleaseVersion());
+                }
+                classArray.add(classJson);
+
+                text.append("- ").append(location.displayName());
+                if (location.multiReleaseVersion() != null) {
+                    text.append(" [MR-").append(location.multiReleaseVersion()).append(']');
+                }
+                text.append('\n');
+            }
+
+            JsonObject structured = new JsonObject();
+            structured.addProperty("path", path.toString());
+            structured.addProperty("kind", container.kind());
+            structured.addProperty("totalClasses", classes.size());
+            structured.add("classes", classArray);
+            if (detailed) {
+                JsonObject packages = new JsonObject();
+                packageCounts.forEach(packages::addProperty);
+                structured.add("packages", packages);
+            }
+            return ToolResults.structured(text.toString().trim(), structured);
+        }
+    }
+
+    private static void addStringProperty(JsonObject properties, String name, String description) {
+        JsonObject property = new JsonObject();
+        property.addProperty("type", "string");
+        property.addProperty("description", description);
+        properties.add(name, property);
+    }
+
+    private static void addBooleanProperty(JsonObject properties, String name, String description, boolean defaultValue) {
+        JsonObject property = new JsonObject();
+        property.addProperty("type", "boolean");
+        property.addProperty("description", description);
+        property.addProperty("default", defaultValue);
+        properties.add(name, property);
+    }
+
+    private static void addIntegerProperty(JsonObject properties, String name, String description, int defaultValue) {
+        JsonObject property = new JsonObject();
+        property.addProperty("type", "integer");
+        property.addProperty("description", description);
+        property.addProperty("default", defaultValue);
+        properties.add(name, property);
+    }
+}

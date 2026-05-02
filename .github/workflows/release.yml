@@ -1,0 +1,203 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  # ------------------------------------------------------------------
+  # Build the fat JAR once
+  # ------------------------------------------------------------------
+  jar:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build JAR
+        run: mvn -B package -DskipTests
+      - name: Read version
+        id: version
+        run: echo "version=$(mvn -B help:evaluate -Dexpression=project.version -q | tail -1)" >> $GITHUB_OUTPUT
+      - name: Upload JAR
+        uses: actions/upload-artifact@v7
+        with:
+          name: jar
+          path: target/jd-mcp-duo.jar
+          retention-days: 1
+
+  # ------------------------------------------------------------------
+  # Linux + macOS Intel: assembled on ubuntu (no macos-13 needed)
+  #   - Linux: our own jlink
+  #   - macOS x64: download pre-built JRE from jre-builder
+  # ------------------------------------------------------------------
+  unix-package:
+    needs: jar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+      - name: Download JAR
+        uses: actions/download-artifact@v8
+        with:
+          name: jar
+          path: dist/lib
+
+      # --- Linux: jlink our own JRE ---
+      - name: Build Linux runtime (jlink)
+        run: |
+          jlink --add-modules java.base,java.compiler,java.desktop,java.management,java.net.http,java.scripting,java.sql,jdk.zipfs,jdk.crypto.ec,jdk.unsupported \
+                --strip-debug --no-header-files --no-man-pages --output dist/linux/runtime
+      - name: Package Linux
+        run: |
+          DIR="jd-mcp-duo"
+          mkdir -p "$DIR/bin" "$DIR/lib" "$DIR/runtime"
+          cp dist/lib/jd-mcp-duo.jar "$DIR/lib/"
+          cp -r dist/linux/runtime/* "$DIR/runtime/"
+          cp src/main/scripts/jd-mcp-duo "$DIR/bin/"
+          chmod +x "$DIR/bin/jd-mcp-duo"
+          tar -cJf "jd-mcp-duo-linux-x64.tar.xz" "$DIR"
+
+      # --- macOS Intel: pre-built JRE from jre-builder ---
+      - name: Download and package macOS Intel
+        run: |
+          DIR="jd-mcp-duo"
+          mkdir -p "$DIR/bin" "$DIR/lib" "$DIR/runtime"
+          curl -sSfL "https://github.com/nbauma109/jre-builder/releases/download/5.1.2/jre-5.1.2-25.0.2-macos-x64.zip" -o jre.zip
+          unzip -qo jre.zip -d "$DIR/runtime/"
+          # If the zip has a single top-level directory, flatten it
+          CONTENTS=$(ls "$DIR/runtime")
+          if [ $(echo "$CONTENTS" | wc -l) -eq 1 ] && [ -d "$DIR/runtime/$CONTENTS" ]; then
+            TMP=$(mktemp -d)
+            mv "$DIR/runtime/$CONTENTS" "$TMP/jre"
+            rm -rf "$DIR/runtime"
+            mv "$TMP/jre" "$DIR/runtime"
+          fi
+          # unzip loses execute permissions; restore them on JRE binaries
+          chmod +x "$DIR/runtime/bin/"* 2>/dev/null || true
+          chmod +x "$DIR/runtime/lib/jexec" 2>/dev/null || true
+          cp dist/lib/jd-mcp-duo.jar "$DIR/lib/"
+          cp src/main/scripts/jd-mcp-duo "$DIR/bin/"
+          chmod +x "$DIR/bin/jd-mcp-duo"
+          tar -cJf "jd-mcp-duo-macos-x64.tar.xz" "$DIR"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: unix-platforms
+          path: jd-mcp-duo-*.tar.xz
+          retention-days: 1
+
+  # ------------------------------------------------------------------
+  # macOS Apple Silicon: our own jlink on macos-latest
+  # ------------------------------------------------------------------
+  macos-arm64:
+    needs: jar
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+      - name: Download JAR
+        uses: actions/download-artifact@v8
+        with:
+          name: jar
+          path: dist/lib
+      - name: Build runtime (jlink)
+        run: |
+          jlink --add-modules java.base,java.compiler,java.desktop,java.management,java.net.http,java.scripting,java.sql,jdk.zipfs,jdk.crypto.ec,jdk.unsupported \
+                --strip-debug --no-header-files --no-man-pages --output dist/runtime
+      - name: Package macOS arm64
+        run: |
+          DIR="jd-mcp-duo"
+          mkdir -p "$DIR/bin" "$DIR/lib" "$DIR/runtime"
+          cp dist/lib/jd-mcp-duo.jar "$DIR/lib/"
+          cp -r dist/runtime/* "$DIR/runtime/"
+          cp src/main/scripts/jd-mcp-duo "$DIR/bin/"
+          chmod +x "$DIR/bin/jd-mcp-duo"
+          tar -cJf "jd-mcp-duo-macos-arm64.tar.xz" "$DIR"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-arm64
+          path: jd-mcp-duo-macos-arm64.tar.xz
+          retention-days: 1
+
+  # ------------------------------------------------------------------
+  # Windows: our own jlink on windows-latest
+  # ------------------------------------------------------------------
+  windows-package:
+    needs: jar
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+      - name: Download JAR
+        uses: actions/download-artifact@v8
+        with:
+          name: jar
+          path: dist/lib
+      - name: Build Windows runtime (jlink)
+        shell: bash
+        run: |
+          jlink --add-modules java.base,java.compiler,java.desktop,java.management,java.net.http,java.scripting,java.sql,jdk.zipfs,jdk.crypto.ec,jdk.unsupported \
+                --strip-debug --no-header-files --no-man-pages --output dist/win/runtime
+      - name: Package Windows
+        shell: bash
+        run: |
+          DIR="jd-mcp-duo"
+          mkdir -p "$DIR/bin" "$DIR/lib" "$DIR/runtime"
+          cp dist/lib/jd-mcp-duo.jar "$DIR/lib/"
+          cp -r dist/win/runtime/* "$DIR/runtime/"
+          cp src/main/scripts/jd-mcp-duo.bat "$DIR/bin/"
+          powershell -Command "Compress-Archive -Path '$DIR' -DestinationPath 'jd-mcp-duo-windows-x64.zip'"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-platform
+          path: jd-mcp-duo-windows-x64.zip
+          retention-days: 1
+
+  # ------------------------------------------------------------------
+  # GitHub Release
+  # ------------------------------------------------------------------
+  release:
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    needs: [unix-package, macos-arm64, windows-package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: '{unix-platforms,macos-arm64,windows-platform}'
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: jar
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            jd-mcp-duo-linux-x64.tar.xz
+            jd-mcp-duo-macos-x64.tar.xz
+            jd-mcp-duo-macos-arm64.tar.xz
+            jd-mcp-duo-windows-x64.zip
+            jd-mcp-duo.jar
