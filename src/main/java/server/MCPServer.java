@@ -50,7 +50,7 @@ public class MCPServer {
     private String protocolVersion = DEFAULT_PROTOCOL_VERSION;
 
     public MCPServer() {
-        this.gson = new GsonBuilder().serializeNulls().create();
+        this.gson = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
         this.tools = new LinkedHashMap<>();
         registerTools();
     }
@@ -88,6 +88,7 @@ public class MCPServer {
         tools.put("class_metadata", new ClassMetadataTool());
         tools.put("source_quality_report", new SourceQualityReportTool());
         tools.put("build_skeleton", new BuildSkeletonTool());
+        tools.put("list_dependencies", new ListDependenciesTool());
         tools.put("compiler_diagnostics", new CompilerDiagnosticsTool());
         tools.put("remove_unnecessary_casts", new RemoveUnnecessaryCastsTool());
         tools.put("list_engines", new ListEnginesTool());

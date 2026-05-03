@@ -286,13 +286,9 @@ public final class ArchiveInputContainer implements InputContainer {
                 throw new IOException("AAR does not contain classes.jar: " + aarPath);
             }
 
-            byte[] jarBytes;
-            try (InputStream inputStream = aar.getInputStream(classesJar)) {
-                jarBytes = inputStream.readAllBytes();
-            }
-
             Map<String, byte[]> entries = new LinkedHashMap<>();
-            try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(jarBytes))) {
+            try (InputStream classesJarStream = aar.getInputStream(classesJar);
+                 ZipInputStream zipInputStream = new ZipInputStream(classesJarStream)) {
                 ZipEntry entry;
                 while ((entry = zipInputStream.getNextEntry()) != null) {
                     if (!entry.isDirectory()) {
@@ -325,7 +321,7 @@ public final class ArchiveInputContainer implements InputContainer {
                 Path tempDex = Files.createTempFile("jd-mcp-duo-", ".dex");
                 try {
                     try (InputStream inputStream = apk.getInputStream(dexEntry)) {
-                        Files.write(tempDex, inputStream.readAllBytes());
+                        Files.copy(inputStream, tempDex, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     }
                     entries.putAll(DexToClassMapConverter.getOrCreate(tempDex));
                 } finally {
@@ -398,7 +394,7 @@ public final class ArchiveInputContainer implements InputContainer {
             Path extracted = Files.createTempFile("jd-mcp-duo-nested-", suffix);
             tempFiles.add(extracted);
             try (InputStream inputStream = archive.getInputStream(entry)) {
-                Files.write(extracted, inputStream.readAllBytes());
+                Files.copy(inputStream, extracted, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
             if (!isReadableZipDependency(extracted, suffix)) {
                 Files.deleteIfExists(extracted);

@@ -22,7 +22,7 @@ public class CliMode {
     private static final Logger logger = LoggerFactory.getLogger(CliMode.class);
 
     private final Map<String, MCPTool> tools;
-    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     public CliMode(Map<String, MCPTool> tools) {
         this.tools = tools;

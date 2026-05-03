@@ -30,10 +30,10 @@ jd-mcp-duo 将反编译、静态调用链、跨归档全文搜索和资源提取
   search_in_jar --path=app.jar --query='password' --type=string
   ```
 
-- **依赖风险定位** — Agent 通过 `build_skeleton` 提取所有依赖坐标及版本，以便结合漏洞情报识别其中的已知漏洞依赖
+- **依赖风险定位** — Agent 通过 `list_dependencies` 提取归档中所有嵌入式 Maven 坐标，以便结合漏洞情报识别其中的已知漏洞依赖
 
   ```bash
-  build_skeleton --path=./libs
+  list_dependencies --path=app.jar --format=text --output=deps.txt
   ```
 
 - **堆栈回溯定位** — Agent 通过 `resolve_stacktrace` 将异常堆栈日志中的每一帧解析到反编译源码的行级位置，快速定位触发异常的具体代码
@@ -347,8 +347,26 @@ jd-mcp-duo\bin\jd-mcp-duo.bat --help
 
 **`build_skeleton`** — 从一个或多个归档生成 Maven/Gradle 构建骨架。从 META-INF/maven 元数据、SHA-1 查 Maven Central 以及 manifest 属性中解析依赖坐标。
 
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `path` | 是 | 主归档或目录 |
+| `scopePath` | 否 | 用于依赖推断的额外归档 |
+| `outputDir` | 否 | 输出目录，写入 pom.xml、build.gradle 和 mvn_deploy.bat |
+
 ```bash
-./bin/jd-mcp-duo build_skeleton --path=./libs --scopePath=./libs
+./bin/jd-mcp-duo build_skeleton --path=./libs --outputDir=./skeleton
+```
+
+**`list_dependencies`** — 扫描归档，列出 META-INF/maven/ 下所有嵌入式 Maven 依赖。支持 JSON 或纯文本 GAV 格式输出，可选写入文件。
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `path` | 是 | 归档路径 |
+| `format` | 否 | `json`（默认）或 `text`（每行一个 GAV） |
+| `output` | 否 | 将依赖清单写入指定文件 |
+
+```bash
+./bin/jd-mcp-duo list_dependencies --path=app.jar --format=text --output=deps.txt
 ```
 
 **`compiler_diagnostics`** — 对 Java 源码文件或反编译输出运行 Eclipse JDT 编译器，报告错误、警告和信息标记。

@@ -30,10 +30,10 @@ Examples of security analysis scenarios this MCP service can support when connec
   search_in_jar --path=app.jar --query='password' --type=string
   ```
 
-- **Dependency risk identification** — The agent uses `build_skeleton` to extract all dependency coordinates and versions, enabling cross-referencing with vulnerability intelligence to identify known-vulnerable dependencies
+- **Dependency risk identification** — The agent uses `list_dependencies` to extract all embedded Maven coordinates from an archive, enabling cross-referencing with vulnerability intelligence to identify known-vulnerable dependencies
 
   ```bash
-  build_skeleton --path=./libs
+  list_dependencies --path=app.jar --format=text --output=deps.txt
   ```
 
 - **Stack trace resolution** — The agent uses `resolve_stacktrace` to resolve each frame of an exception stack trace to a line-level position in the decompiled source, quickly pinpointing the exact code that triggered the exception
@@ -477,9 +477,22 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Primary archive or directory |
 | `scopePath` | no | Additional archives for dependency inference |
+| `outputDir` | no | Directory to write generated pom.xml, build.gradle, and mvn_deploy.bat |
 
 ```bash
-./bin/jd-mcp-duo build_skeleton --path=./libs --scopePath=./libs
+./bin/jd-mcp-duo build_skeleton --path=./libs --outputDir=./skeleton
+```
+
+**`list_dependencies`** — Scan an archive and list all embedded Maven dependencies found under META-INF/maven/. Outputs as JSON or GAV text format, optionally writing to a file.
+
+| Parameter | Required | Description |
+|---|---|---|
+| `path` | yes | Path to a supported archive |
+| `format` | no | `json` (default) or `text` (GAV per line) |
+| `output` | no | File path to write the dependency list |
+
+```bash
+./bin/jd-mcp-duo list_dependencies --path=app.jar --format=text --output=deps.txt
 ```
 
 **`compiler_diagnostics`** — Run the Eclipse JDT compiler on a Java source file or decompiled output, reporting errors, warnings, and info markers. Useful for validating decompiled output correctness.
