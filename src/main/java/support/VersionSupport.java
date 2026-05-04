@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 public final class VersionSupport {
-    private static final String POM_PROPERTIES = "META-INF/maven/org.jd.gui.duo/jd-mcp-duo/pom.properties";
+    private static final String POM_PROPERTIES = "META-INF/maven/io.github.agelovito/jd-mcp-duo/pom.properties";
     private static final String UNKNOWN = "unknown";
 
     private VersionSupport() {

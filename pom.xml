@@ -5,7 +5,7 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.jd.gui.duo</groupId>
+    <groupId>io.github.agelovito</groupId>
     <artifactId>jd-mcp-duo</artifactId>
     <version>4.2.4.1</version>
     <packaging>jar</packaging>
