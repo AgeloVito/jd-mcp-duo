@@ -6,6 +6,7 @@ import archive.InputContainers;
 import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
+import support.SchemaSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -27,11 +28,11 @@ public class ListClassesTool implements MCPTool {
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "path", "Path to an archive or directory");
-        addStringProperty(properties, "package", "Optional package prefix filter");
-        addIntegerProperty(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
-        addBooleanProperty(properties, "includeInner", "Include inner classes", false);
-        addBooleanProperty(properties, "detailed", "Include package statistics", false);
+        SchemaSupport.addString(properties, "path", "Path to an archive or directory");
+        SchemaSupport.addString(properties, "package", "Optional package prefix filter");
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
+        SchemaSupport.addBoolean(properties, "includeInner", "Include inner classes", false);
+        SchemaSupport.addBoolean(properties, "detailed", "Include package statistics", false);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -100,28 +101,5 @@ public class ListClassesTool implements MCPTool {
             }
             return ToolResults.structured(text.toString().trim(), structured);
         }
-    }
-
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
-    }
-
-    private static void addBooleanProperty(JsonObject properties, String name, String description, boolean defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "boolean");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addIntegerProperty(JsonObject properties, String name, String description, int defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "integer");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
     }
 }

@@ -3,6 +3,7 @@ package tools;
 import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
+import support.SchemaSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -27,8 +28,8 @@ public class CompareJarsTool implements MCPTool {
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "jar1", "First archive path");
-        addStringProperty(properties, "jar2", "Second archive path");
+        SchemaSupport.addString(properties, "jar1", "First archive path");
+        SchemaSupport.addString(properties, "jar2", "Second archive path");
         JsonObject detail = new JsonObject();
         detail.addProperty("type", "boolean");
         detail.addProperty("default", true);
@@ -47,10 +48,10 @@ public class CompareJarsTool implements MCPTool {
         Path right = JsonUtils.getRequiredPath(arguments, "jar2");
         boolean detail = JsonUtils.getBoolean(arguments, "detail", true);
         if (!Files.exists(left)) {
-            throw new IOException("Archive not found: " + left);
+            throw new IllegalArgumentException("Archive not found: " + left);
         }
         if (!Files.exists(right)) {
-            throw new IOException("Archive not found: " + right);
+            throw new IllegalArgumentException("Archive not found: " + right);
         }
 
         Map<String, EntryInfo> leftEntries = readEntries(left);
@@ -138,13 +139,6 @@ public class CompareJarsTool implements MCPTool {
             jarFile.stream().forEach(entry -> entries.put(entry.getName(), new EntryInfo(entry.getSize(), entry.getCrc())));
         }
         return entries;
-    }
-
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
     }
 
     private record EntryInfo(long size, long crc) {

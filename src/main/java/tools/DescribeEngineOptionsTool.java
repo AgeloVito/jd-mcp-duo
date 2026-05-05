@@ -71,7 +71,7 @@ public class DescribeEngineOptionsTool implements MCPTool {
             if (option.has("type")) {
                 text.append(" (").append(option.get("type").getAsString()).append(')');
             }
-            if (option.has("defaultValue")) {
+            if (option.has("defaultValue") && !option.get("defaultValue").isJsonNull()) {
                 text.append(", default=").append(option.get("defaultValue").getAsString());
             }
             if (option.has("description")) {

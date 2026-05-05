@@ -1,17 +1,21 @@
 package tools;
 
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.List;
+
 import archive.InputContainer;
 import archive.InputContainers;
 import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
+import support.SchemaSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class AnalyzeDirectoryTool implements MCPTool {
@@ -25,12 +29,9 @@ public class AnalyzeDirectoryTool implements MCPTool {
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "path", "Directory path");
-        JsonObject recursive = new JsonObject();
-        recursive.addProperty("type", "boolean");
-        recursive.addProperty("default", false);
-        properties.add("recursive", recursive);
-        addStringProperty(properties, "pattern", "Optional glob pattern");
+        SchemaSupport.addString(properties, "path", "Directory path");
+        SchemaSupport.addBoolean(properties, "recursive", "Recursively scan subdirectories", false);
+        SchemaSupport.addString(properties, "pattern", "Optional glob pattern");
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -91,17 +92,15 @@ public class AnalyzeDirectoryTool implements MCPTool {
     }
 
     private static boolean matchesPattern(Path path, String pattern) {
-        return "*".equals(pattern) || path.getFileName().toString().matches(globToRegex(pattern));
-    }
-
-    private static String globToRegex(String glob) {
-        return glob.replace(".", "\\.").replace("*", ".*").replace("?", ".");
-    }
-
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
+        if ("*".equals(pattern)) {
+            return true;
+        }
+        try {
+            PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+            return matcher.matches(path.getFileName());
+        } catch (java.util.regex.PatternSyntaxException e) {
+            return path.getFileName().toString().matches(
+                    java.util.regex.Pattern.quote(pattern).replace("\\*", "\\E.*\\Q").replace("\\?", "\\E.\\Q"));
+        }
     }
 }

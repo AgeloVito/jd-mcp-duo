@@ -257,7 +257,9 @@ public class ShowCfgTool implements MCPTool {
             if (label.length() > 0) {
                 label.append("\\n");
             }
-            label.append(i).append(": ").append(Printer.OPCODES[instructions.get(i).getOpcode()]);
+            int opcode = instructions.get(i).getOpcode();
+            label.append(i).append(": ").append(opcode >= 0 && opcode < Printer.OPCODES.length
+                    ? Printer.OPCODES[opcode] : "unknown_" + opcode);
         }
         return label.toString();
     }

@@ -38,6 +38,13 @@ public final class SchemaSupport {
         properties.add(name, property);
     }
 
+    public static void addInteger(JsonObject properties, String name, String description) {
+        JsonObject property = new JsonObject();
+        property.addProperty("type", "integer");
+        property.addProperty("description", description);
+        properties.add(name, property);
+    }
+
     public static void addInteger(JsonObject properties, String name, String description, int defaultValue) {
         JsonObject property = new JsonObject();
         property.addProperty("type", "integer");

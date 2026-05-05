@@ -5,6 +5,7 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.MavenSearchSupport;
+import support.PathSupport;
 import support.SchemaSupport;
 import support.Sha1Support;
 import support.ToolResults;
@@ -24,7 +25,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BuildSkeletonTool implements MCPTool {
-    private static final Pattern FILE_PATTERN = Pattern.compile("(.+)-([0-9][A-Za-z0-9_.-]*)\\.(jar|war|zip|aar|jmod|ear|kar)$");
+    private static final Pattern FILE_PATTERN = Pattern.compile(
+            "([^-]+(?:-[^0-9][^-]*)*)-([0-9][A-Za-z0-9_.-]*)\\.(jar|war|zip|aar|jmod|ear|kar)$");
 
     @Override
     public String getDescription() {
@@ -57,7 +59,10 @@ public class BuildSkeletonTool implements MCPTool {
         List<Path> inputs = new ArrayList<>();
         inputs.add(JsonUtils.getRequiredPath(arguments, "path"));
         for (String extra : JsonUtils.getStringList(arguments, "files")) {
-            inputs.add(Path.of(extra).toAbsolutePath().normalize());
+            Path validated = PathSupport.validatePath(extra);
+            if (validated != null) {
+                inputs.add(validated);
+            }
         }
 
         List<Path> archives = new ArrayList<>();

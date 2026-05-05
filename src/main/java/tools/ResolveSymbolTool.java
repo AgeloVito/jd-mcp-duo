@@ -97,8 +97,11 @@ public class ResolveSymbolTool implements MCPTool {
                 var broadMethods = (descriptor != null && !descriptor.isBlank())
                         ? scope.resolveMethodCandidates(owner, methodName, null)
                         : methodsFound;
-                if (methodsFound.isEmpty() || ((descriptor == null || descriptor.isBlank()) && methodsFound.size() > 1)) {
-                    return ResolutionSupport.unresolvedMethod(owner, methodName, descriptor, methodsFound.isEmpty() ? broadMethods : methodsFound);
+                if (methodsFound.isEmpty()
+                        || ((descriptor == null || descriptor.isBlank()) && methodsFound.size() > 1)
+                        || (descriptor != null && !descriptor.isBlank() && methodsFound.size() > 1)) {
+                    return ResolutionSupport.unresolvedMethod(owner, methodName, descriptor,
+                            methodsFound.isEmpty() ? broadMethods : methodsFound);
                 }
                 JsonArray methods = new JsonArray();
                 for (ScopedMethod scopedMethod : methodsFound) {

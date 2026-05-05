@@ -221,9 +221,14 @@ public class SourceLookupTool implements MCPTool {
         try (JarFile jarFile = new JarFile(jarPath.toFile())) {
             JarEntry entry = jarFile.getJarEntry(entryName);
             if (entry == null) {
-                String fallbackSuffix = className.substring(className.lastIndexOf('.') + 1) + ".java";
+                int lastDot = className.lastIndexOf('.');
+                String simpleName = (lastDot >= 0 ? className.substring(lastDot + 1) : className) + ".java";
+                String packagePath = lastDot >= 0 ? className.substring(0, lastDot).replace('.', '/') + "/" : "";
+                String expectedSuffix = "/" + packagePath + simpleName;
                 entry = jarFile.stream()
-                        .filter(item -> !item.isDirectory() && item.getName().endsWith(fallbackSuffix))
+                        .filter(item -> !item.isDirectory()
+                                && item.getName().endsWith(simpleName)
+                                && item.getName().endsWith(expectedSuffix))
                         .findFirst()
                         .orElse(null);
                 if (entry == null) {

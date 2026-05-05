@@ -112,20 +112,7 @@ public class DecompileDirectoryTool implements MCPTool {
                             item.addProperty("kind", "class");
                             item.addProperty("className", defaultClass.displayName());
                             item.addProperty("savedTo", outputFile.toString());
-                            item.addProperty("engineUsed", outcome.engineUsed());
-                            item.addProperty("patched", outcome.patched());
-                            item.addProperty("fallbackUsed", outcome.fallbackUsed());
-                            item.addProperty("metadataLimited", outcome.metadataLimited());
-                            item.addProperty("metadataRebuilt", outcome.metadataRebuilt());
-                            item.addProperty("methodPatchCount", outcome.methodPatches().size());
-                            item.add("methodPatches", DecompilationJson.methodPatchesJson(outcome));
-                            item.add("warnings", DecompilationJson.warningsJson(outcome));
-                            JsonArray attempted = new JsonArray();
-                            outcome.attemptedEngines().forEach(attempted::add);
-                            item.add("attemptedEngines", attempted);
-                            JsonObject engineFailures = new JsonObject();
-                            outcome.engineFailures().forEach(engineFailures::addProperty);
-                            item.add("engineFailures", engineFailures);
+                            DecompilationJson.addOutcomeSummary(item, outcome);
                             item.addProperty("successCount", 1);
                             item.addProperty("failureCount", 0);
                             if (outcome.patched()) {
@@ -163,20 +150,7 @@ public class DecompileDirectoryTool implements MCPTool {
                                     }
                                     classResult.addProperty("success", true);
                                     classResult.addProperty("savedTo", outputFile.toString());
-                                    classResult.addProperty("engineUsed", outcome.engineUsed());
-                                    classResult.addProperty("patched", outcome.patched());
-                                    classResult.addProperty("fallbackUsed", outcome.fallbackUsed());
-                                    classResult.addProperty("metadataLimited", outcome.metadataLimited());
-                                    classResult.addProperty("metadataRebuilt", outcome.metadataRebuilt());
-                                    classResult.addProperty("methodPatchCount", outcome.methodPatches().size());
-                                    classResult.add("methodPatches", DecompilationJson.methodPatchesJson(outcome));
-                                    classResult.add("warnings", DecompilationJson.warningsJson(outcome));
-                                    JsonArray attempted = new JsonArray();
-                                    outcome.attemptedEngines().forEach(attempted::add);
-                                    classResult.add("attemptedEngines", attempted);
-                                    JsonObject engineFailures = new JsonObject();
-                                    outcome.engineFailures().forEach(engineFailures::addProperty);
-                                    classResult.add("engineFailures", engineFailures);
+                                    DecompilationJson.addOutcomeSummary(classResult, outcome);
                                     if (outcome.patched()) {
                                         patchedSources++;
                                     }

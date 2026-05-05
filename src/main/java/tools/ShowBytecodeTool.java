@@ -5,6 +5,7 @@ import archive.InputContainers;
 import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
+import support.SchemaSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class ShowBytecodeTool implements MCPTool {
     @Override
@@ -26,10 +28,10 @@ public class ShowBytecodeTool implements MCPTool {
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "path", "Path to a .class file, directory, or supported archive");
-        addStringProperty(properties, "className", "Class name when path points to a directory or archive");
-        addIntegerProperty(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
-        addBooleanProperty(properties, "verbose", "Use javap -v", true);
+        SchemaSupport.addString(properties, "path", "Path to a .class file, directory, or supported archive");
+        SchemaSupport.addString(properties, "className", "Class name when path points to a directory or archive");
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
+        SchemaSupport.addBoolean(properties, "verbose", "Use javap -v", true);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -100,33 +102,15 @@ public class ShowBytecodeTool implements MCPTool {
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();
         String output = new String(process.getInputStream().readAllBytes());
-        int exitCode = process.waitFor();
+        if (!process.waitFor(30, TimeUnit.SECONDS)) {
+            process.destroyForcibly();
+            throw new IllegalStateException("javap timed out after 30 seconds");
+        }
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
             throw new IllegalStateException("javap execution failed, exit code: " + exitCode);
         }
         return output;
     }
 
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
-    }
-
-    private static void addBooleanProperty(JsonObject properties, String name, String description, boolean defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "boolean");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addIntegerProperty(JsonObject properties, String name, String description, int defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "integer");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
 }

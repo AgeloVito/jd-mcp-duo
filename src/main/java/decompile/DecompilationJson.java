@@ -50,6 +50,23 @@ public final class DecompilationJson {
         return json;
     }
 
+    public static void addOutcomeSummary(JsonObject target, DecompilationOutcome outcome) {
+        target.addProperty("engineUsed", outcome.engineUsed());
+        target.addProperty("patched", outcome.patched());
+        target.addProperty("fallbackUsed", outcome.fallbackUsed());
+        target.addProperty("metadataLimited", outcome.metadataLimited());
+        target.addProperty("metadataRebuilt", outcome.metadataRebuilt());
+        target.addProperty("methodPatchCount", outcome.methodPatches().size());
+        target.add("methodPatches", methodPatchesJson(outcome));
+        target.add("warnings", warningsJson(outcome));
+        JsonArray attempted = new JsonArray();
+        outcome.attemptedEngines().forEach(attempted::add);
+        target.add("attemptedEngines", attempted);
+        JsonObject engineFailures = new JsonObject();
+        outcome.engineFailures().forEach(engineFailures::addProperty);
+        target.add("engineFailures", engineFailures);
+    }
+
     public static JsonArray methodPatchesJson(DecompilationOutcome outcome) {
         JsonArray array = new JsonArray();
         for (JdtMethodPatcher.MethodPatch patch : outcome.methodPatches()) {

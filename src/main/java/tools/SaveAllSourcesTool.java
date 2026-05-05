@@ -84,23 +84,28 @@ public class SaveAllSourcesTool implements MCPTool {
                             }
                             JsonObject savedEntry = new JsonObject();
                             savedEntry.addProperty("className", location.displayName());
-                            savedEntry.addProperty("engineUsed", outcome.engineUsed());
-                            savedEntry.addProperty("patched", outcome.patched());
-                            savedEntry.addProperty("fallbackUsed", outcome.fallbackUsed());
-                            savedEntry.addProperty("metadataLimited", outcome.metadataLimited());
-                            savedEntry.addProperty("metadataRebuilt", outcome.metadataRebuilt());
-                            savedEntry.addProperty("methodPatchCount", outcome.methodPatches().size());
-                            savedEntry.add("methodPatches", DecompilationJson.methodPatchesJson(outcome));
-                            savedEntry.add("warnings", DecompilationJson.warningsJson(outcome));
-                            JsonArray attempted = new JsonArray();
-                            outcome.attemptedEngines().forEach(attempted::add);
-                            savedEntry.add("attemptedEngines", attempted);
-                            JsonObject engineFailures = new JsonObject();
-                            outcome.engineFailures().forEach(engineFailures::addProperty);
-                            savedEntry.add("engineFailures", engineFailures);
+                            DecompilationJson.addOutcomeSummary(savedEntry, outcome);
                             saved.add(savedEntry);
                         } catch (Exception e) {
                             failures.add(failure(location, e));
+                        }
+                    }
+                    for (ResourceEntry resource : container.listResources()) {
+                        try {
+                            byte[] bytes = container.loadResourceBytes(resource.entryName());
+                            if (bytes == null) continue;
+                            jarOutputStream.putNextEntry(new JarEntry(resource.entryName()));
+                            jarOutputStream.write(bytes);
+                            jarOutputStream.closeEntry();
+                            JsonObject copied = new JsonObject();
+                            copied.addProperty("entryName", resource.entryName());
+                            copied.addProperty("size", bytes.length);
+                            resourcesCopied.add(copied);
+                        } catch (Exception e) {
+                            JsonObject fail = new JsonObject();
+                            fail.addProperty("entryName", resource.entryName());
+                            fail.addProperty("error", e.getMessage());
+                            resourcesCopied.add(fail);
                         }
                     }
                 }
@@ -121,20 +126,7 @@ public class SaveAllSourcesTool implements MCPTool {
                         if (writeSidecarMetadata) {
                             savedEntry.addProperty("savedMetadataTo", SidecarMetadataSupport.sidecarPath(javaFile).toString());
                         }
-                        savedEntry.addProperty("engineUsed", outcome.engineUsed());
-                        savedEntry.addProperty("patched", outcome.patched());
-                        savedEntry.addProperty("fallbackUsed", outcome.fallbackUsed());
-                        savedEntry.addProperty("metadataLimited", outcome.metadataLimited());
-                        savedEntry.addProperty("metadataRebuilt", outcome.metadataRebuilt());
-                        savedEntry.addProperty("methodPatchCount", outcome.methodPatches().size());
-                        savedEntry.add("methodPatches", DecompilationJson.methodPatchesJson(outcome));
-                        savedEntry.add("warnings", DecompilationJson.warningsJson(outcome));
-                        JsonArray attempted = new JsonArray();
-                        outcome.attemptedEngines().forEach(attempted::add);
-                        savedEntry.add("attemptedEngines", attempted);
-                        JsonObject engineFailures = new JsonObject();
-                        outcome.engineFailures().forEach(engineFailures::addProperty);
-                        savedEntry.add("engineFailures", engineFailures);
+                        DecompilationJson.addOutcomeSummary(savedEntry, outcome);
                         saved.add(savedEntry);
                     } catch (Exception e) {
                         failures.add(failure(location, e));

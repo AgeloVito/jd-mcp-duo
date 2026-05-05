@@ -1,8 +1,6 @@
 package support;
 
 import archive.InputContainers;
-import index.ScopeIndex;
-import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,16 +11,6 @@ import java.util.stream.Stream;
 
 public final class ScopeSupport {
     private ScopeSupport() {
-    }
-
-    public static ScopeIndex openScope(JsonObject arguments, String primaryKey) throws IOException {
-        Path primary = JsonUtils.getRequiredPath(arguments, primaryKey);
-        Path scopePath = JsonUtils.getPath(arguments, "scopePath");
-        if (scopePath != null && !Files.exists(scopePath)) {
-            throw new IOException("scopePath not found: " + scopePath);
-        }
-        boolean recursive = JsonUtils.getBoolean(arguments, "scopeRecursive", false);
-        return ScopeIndex.open(primary, scopePath, recursive);
     }
 
     public static List<Path> collectScopeInputs(Path primaryPath, Path scopePath, boolean recursive) throws IOException {

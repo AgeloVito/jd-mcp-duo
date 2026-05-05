@@ -10,6 +10,7 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.SchemaSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -32,18 +33,18 @@ public class DecompileJarTool implements MCPTool {
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "path", "Path to a supported archive or directory");
-        addStringProperty(properties, "className", "Class name to preview when decompile=true and the input contains multiple classes");
-        addIntProperty(properties, "limit", "Maximum number of classes to list", 20);
-        addBooleanProperty(properties, "decompile", "Include a preview of the selected class", false);
-        addStringProperty(properties, "engine", "Decompiler engine for preview");
-        addStringProperty(properties, "profile", "fast, accurate, or debuggable");
-        addIntProperty(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
-        addIntProperty(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
-        addBooleanProperty(properties, "lineNumbers", "Include line number metadata", false);
-        addStringProperty(properties, "renderLineNumbers", "Render visible line numbers in preview output: decompiled, source, both, or none");
-        addBooleanProperty(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
-        addStringOrArrayProperty(properties, "classpath", "Additional classpath entries");
+        SchemaSupport.addString(properties, "path", "Path to a supported archive or directory");
+        SchemaSupport.addString(properties, "className", "Class name to preview when decompile=true and the input contains multiple classes");
+        SchemaSupport.addInteger(properties, "limit", "Maximum number of classes to list", 20);
+        SchemaSupport.addBoolean(properties, "decompile", "Include a preview of the selected class", false);
+        SchemaSupport.addString(properties, "engine", "Decompiler engine for preview");
+        SchemaSupport.addString(properties, "profile", "fast, accurate, or debuggable");
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
+        SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
+        SchemaSupport.addBoolean(properties, "lineNumbers", "Include line number metadata", false);
+        SchemaSupport.addString(properties, "renderLineNumbers", "Render visible line numbers in preview output: decompiled, source, both, or none");
+        SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
+        SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
         JsonObject preferences = new JsonObject();
         preferences.addProperty("type", "object");
         properties.add("preferences", preferences);
@@ -109,39 +110,6 @@ public class DecompileJarTool implements MCPTool {
 
             return ToolResults.structured(text.toString(), structured);
         }
-    }
-
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
-    }
-
-    private static void addBooleanProperty(JsonObject properties, String name, String description, boolean defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "boolean");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addIntProperty(JsonObject properties, String name, String description, int defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "integer");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addStringOrArrayProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("description", description);
-        JsonArray types = new JsonArray();
-        types.add("string");
-        types.add("array");
-        property.add("type", types);
-        properties.add(name, property);
     }
 
     private static String resolvePreviewClass(List<ClassLocation> classes, String requestedClass) {

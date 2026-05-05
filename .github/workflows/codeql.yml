@@ -23,5 +23,5 @@ jobs:
       - uses: github/codeql-action/init@v4
         with:
           languages: java
-      - run: mvn -B package -DskipTests
+      - run: mvn -B package
       - uses: github/codeql-action/analyze@v4

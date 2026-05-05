@@ -9,13 +9,16 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.SchemaSupport;
 import support.SidecarMetadataSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -32,22 +35,22 @@ public class BatchDecompileJarsTool implements MCPTool {
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "path", "Directory containing archives");
-        addBooleanProperty(properties, "recursive", "Recursively scan subdirectories", false);
-        addStringProperty(properties, "pattern", "Optional glob pattern");
-        addStringProperty(properties, "engine", "Decompiler engine");
-        addStringProperty(properties, "profile", "fast, accurate, or debuggable");
-        addIntProperty(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
-        addIntProperty(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
-        addBooleanProperty(properties, "lineNumbers", "Include line number metadata", false);
-        addStringProperty(properties, "renderLineNumbers", "Render visible line numbers in output/source fields: decompiled, source, both, or none");
-        addBooleanProperty(properties, "writeSidecarMetadata", "Write .meta.json sidecars next to exported sources", false);
-        addBooleanProperty(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
-        addStringOrArrayProperty(properties, "classpath", "Additional classpath entries");
-        addIntProperty(properties, "classLimit", "Maximum classes per archive", 0);
-        addIntProperty(properties, "jarLimit", "Maximum archives processed", 0);
-        addBooleanProperty(properties, "summaryOnly", "Only return summary text", false);
-        addStringProperty(properties, "outputDir", "Optional output directory");
+        SchemaSupport.addString(properties, "path", "Directory containing archives");
+        SchemaSupport.addBoolean(properties, "recursive", "Recursively scan subdirectories", false);
+        SchemaSupport.addString(properties, "pattern", "Optional glob pattern");
+        SchemaSupport.addString(properties, "engine", "Decompiler engine");
+        SchemaSupport.addString(properties, "profile", "fast, accurate, or debuggable");
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
+        SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
+        SchemaSupport.addBoolean(properties, "lineNumbers", "Include line number metadata", false);
+        SchemaSupport.addString(properties, "renderLineNumbers", "Render visible line numbers in output/source fields: decompiled, source, both, or none");
+        SchemaSupport.addBoolean(properties, "writeSidecarMetadata", "Write .meta.json sidecars next to exported sources", false);
+        SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
+        SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
+        SchemaSupport.addInteger(properties, "classLimit", "Maximum classes per archive", 0);
+        SchemaSupport.addInteger(properties, "jarLimit", "Maximum archives processed", 0);
+        SchemaSupport.addBoolean(properties, "summaryOnly", "Only return summary text", false);
+        SchemaSupport.addString(properties, "outputDir", "Optional output directory");
         JsonObject preferences = new JsonObject();
         preferences.addProperty("type", "object");
         properties.add("preferences", preferences);
@@ -104,23 +107,11 @@ public class BatchDecompileJarsTool implements MCPTool {
                         item.addProperty("className", location.displayName());
                         try {
                             var outcome = session.decompile(location.internalName());
+                            boolean hasResult = outcome.result() != null && outcome.result().getDecompiledOutput() != null;
                             item.addProperty("success", true);
-                            item.addProperty("engineUsed", outcome.engineUsed());
-                            item.addProperty("patched", outcome.patched());
-                            item.addProperty("fallbackUsed", outcome.fallbackUsed());
-                            item.addProperty("metadataLimited", outcome.metadataLimited());
-                            item.addProperty("metadataRebuilt", outcome.metadataRebuilt());
-                            item.addProperty("methodPatchCount", outcome.methodPatches().size());
-                            item.add("methodPatches", DecompilationJson.methodPatchesJson(outcome));
-                            item.add("warnings", DecompilationJson.warningsJson(outcome));
-                            JsonArray attempted = new JsonArray();
-                            outcome.attemptedEngines().forEach(attempted::add);
-                            item.add("attemptedEngines", attempted);
-                            JsonObject engineFailures = new JsonObject();
-                            outcome.engineFailures().forEach(engineFailures::addProperty);
-                            item.add("engineFailures", engineFailures);
+                            DecompilationJson.addOutcomeSummary(item, outcome);
                             if (!summaryOnly) {
-                                item.addProperty("source", outcome.result().getDecompiledOutput());
+                                item.addProperty("source", hasResult ? outcome.result().getDecompiledOutput() : "");
                                 if (renderLineNumbers != null) {
                                     item.addProperty("renderedSource", LineNumberRenderer.render(outcome, renderLineNumbers));
                                 }
@@ -164,39 +155,15 @@ public class BatchDecompileJarsTool implements MCPTool {
     }
 
     private static boolean matchesPattern(Path path, String pattern) {
-        return "*".equals(pattern) || path.getFileName().toString().matches(pattern.replace(".", "\\.").replace("*", ".*").replace("?", "."));
-    }
-
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
-    }
-
-    private static void addBooleanProperty(JsonObject properties, String name, String description, boolean defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "boolean");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addIntProperty(JsonObject properties, String name, String description, int defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "integer");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addStringOrArrayProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        JsonArray types = new JsonArray();
-        types.add("string");
-        types.add("array");
-        property.add("type", types);
-        property.addProperty("description", description);
-        properties.add(name, property);
+        if ("*".equals(pattern)) {
+            return true;
+        }
+        try {
+            PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+            return matcher.matches(path.getFileName());
+        } catch (java.util.regex.PatternSyntaxException e) {
+            return path.getFileName().toString().matches(
+                    java.util.regex.Pattern.quote(pattern).replace("\\*", "\\E.*\\Q").replace("\\?", "\\E.\\Q"));
+        }
     }
 }

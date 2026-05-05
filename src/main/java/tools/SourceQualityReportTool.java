@@ -3,6 +3,7 @@ package tools;
 import archive.ClassLocation;
 import archive.InputContainer;
 import archive.InputContainers;
+import decompile.DecompilationJson;
 import decompile.DecompilationOutcome;
 import decompile.DecompilerOptions;
 import model.MCPTool;
@@ -88,18 +89,8 @@ public class SourceQualityReportTool implements MCPTool {
                     }
                     engineCounts.merge(outcome.engineUsed(), 1, Integer::sum);
                     classResult.addProperty("success", true);
-                    classResult.addProperty("engineUsed", outcome.engineUsed());
-                    classResult.addProperty("patched", outcome.patched());
-                    classResult.addProperty("fallbackUsed", outcome.fallbackUsed());
                     classResult.addProperty("nativeAndroid", outcome.nativeAndroid());
-                    classResult.addProperty("metadataLimited", outcome.metadataLimited());
-                    classResult.addProperty("metadataRebuilt", outcome.metadataRebuilt());
-                    JsonArray attempted = new JsonArray();
-                    outcome.attemptedEngines().forEach(attempted::add);
-                    classResult.add("attemptedEngines", attempted);
-                    JsonObject failuresByEngine = new JsonObject();
-                    outcome.engineFailures().forEach(failuresByEngine::addProperty);
-                    classResult.add("engineFailures", failuresByEngine);
+                    DecompilationJson.addOutcomeSummary(classResult, outcome);
                 } catch (Exception e) {
                     failed++;
                     JsonObject failure = new JsonObject();
@@ -159,7 +150,7 @@ public class SourceQualityReportTool implements MCPTool {
         if (normalized.contains("unsupported")) {
             return "unsupported";
         }
-        if (normalized.contains("native") || normalized.contains("jadx")) {
+        if (normalized.contains("jadx") || normalized.contains("android native") || normalized.contains("dex2jar")) {
             return "android_native";
         }
         if (normalized.contains("patch")) {

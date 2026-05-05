@@ -36,7 +36,7 @@ public class ListDependenciesTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) throws Exception {
         Path path = JsonUtils.getRequiredPath(arguments, "path");
         if (!Files.exists(path)) {
-            throw new java.io.IOException("File not found: " + path);
+            throw new IllegalArgumentException("File not found: " + path);
         }
         String format = JsonUtils.getString(arguments, "format", "json");
         Path outputFile = JsonUtils.getPath(arguments, "output");
@@ -66,7 +66,9 @@ public class ListDependenciesTool implements MCPTool {
         }
 
         if (outputFile != null) {
-            Files.createDirectories(outputFile.getParent());
+            if (outputFile.getParent() != null) {
+                Files.createDirectories(outputFile.getParent());
+            }
             StringBuilder sb = new StringBuilder();
             for (Dep d : deps) {
                 sb.append(d.gav()).append('\n');

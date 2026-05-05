@@ -12,6 +12,7 @@ public class AdvancedDecompileTool extends DecompileClassTool {
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
         if (!arguments.has("engine")) {
+            arguments = arguments.deepCopy();
             arguments.addProperty("engine", "auto");
         }
         return super.execute(arguments);

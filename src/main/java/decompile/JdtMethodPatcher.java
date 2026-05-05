@@ -15,6 +15,9 @@ import org.eclipse.text.edits.MultiTextEdit;
 import org.eclipse.text.edits.ReplaceEdit;
 import org.jd.core.v1.service.converter.classfiletojavasyntax.util.ByteCodeWriter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -22,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class JdtMethodPatcher {
+    private static final Logger logger = LoggerFactory.getLogger(JdtMethodPatcher.class);
+
     private JdtMethodPatcher() {
     }
 
@@ -144,15 +149,27 @@ public final class JdtMethodPatcher {
                 && (source.contains(ByteCodeWriter.DECOMPILATION_FAILED_AT_LINE) || source.contains("// INTERNAL ERROR"));
     }
 
+    private static final long PARSE_TIMEOUT_MS = 30_000L;
+
     private static CompilationUnit parse(String source,
                                          String unitName,
                                          URI contextUri,
                                          List<String> classpathEntries) {
+        try {
+            return DecompilerAttemptRunner.run(() -> createAst(source, unitName, classpathEntries, true), PARSE_TIMEOUT_MS);
+        } catch (Exception e) {
+            logger.warn("JDT AST parse timed out or failed for {}: {}", unitName, e.getMessage());
+            return createAst(source, unitName, classpathEntries, false);
+        }
+    }
+
+    private static CompilationUnit createAst(String source, String unitName,
+                                             List<String> classpathEntries, boolean resolveBindings) {
         ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
         parser.setKind(ASTParser.K_COMPILATION_UNIT);
         parser.setSource(source.toCharArray());
-        parser.setResolveBindings(true);
-        parser.setBindingsRecovery(true);
+        parser.setResolveBindings(resolveBindings);
+        parser.setBindingsRecovery(resolveBindings);
         parser.setStatementsRecovery(true);
         parser.setUnitName(unitName.endsWith(".class") ? unitName.replace(".class", ".java") : unitName);
         parser.setEnvironment(classpathEntries.toArray(String[]::new), null, null, true);

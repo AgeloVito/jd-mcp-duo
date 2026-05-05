@@ -1,13 +1,12 @@
 package decompile;
 
 import archive.InputContainer;
+import support.FingerprintSupport;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,47 +65,21 @@ final class DecompilationCache {
         private static String fingerprint(Path path) {
             try {
                 if (Files.isDirectory(path)) {
-                    MessageDigest digest = newSha256();
+                    MessageDigest digest = FingerprintSupport.newSha256();
                     try (Stream<Path> stream = Files.walk(path)) {
                         for (Path child : stream.filter(Files::isRegularFile).sorted().toList()) {
                             Path relative = path.relativize(child);
-                            updateDigest(digest, relative.toString().replace('\\', '/'));
-                            updateDigest(digest, Files.size(child));
-                            updateDigest(digest, Files.getLastModifiedTime(child).toMillis());
+                            FingerprintSupport.updateDigest(digest, relative.toString().replace('\\', '/'));
+                            FingerprintSupport.updateDigest(digest, Files.size(child));
+                            FingerprintSupport.updateDigest(digest, Files.getLastModifiedTime(child).toMillis());
                         }
                     }
-                    return toHex(digest.digest());
+                    return FingerprintSupport.toHex(digest.digest());
                 }
                 return Files.getLastModifiedTime(path).toMillis() + ":" + Files.size(path);
             } catch (IOException e) {
                 return "unknown";
             }
-        }
-
-        private static MessageDigest newSha256() throws IOException {
-            try {
-                return MessageDigest.getInstance("SHA-256");
-            } catch (NoSuchAlgorithmException e) {
-                throw new IOException("SHA-256 not available", e);
-            }
-        }
-
-        private static void updateDigest(MessageDigest digest, String value) {
-            digest.update(value.getBytes(StandardCharsets.UTF_8));
-            digest.update((byte) 0);
-        }
-
-        private static void updateDigest(MessageDigest digest, long value) {
-            updateDigest(digest, Long.toString(value));
-        }
-
-        private static String toHex(byte[] bytes) {
-            StringBuilder builder = new StringBuilder(bytes.length * 2);
-            for (byte value : bytes) {
-                builder.append(Character.forDigit((value >>> 4) & 0xF, 16));
-                builder.append(Character.forDigit(value & 0xF, 16));
-            }
-            return builder.toString();
         }
     }
 }

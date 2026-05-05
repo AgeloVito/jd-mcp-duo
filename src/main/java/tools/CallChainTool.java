@@ -50,7 +50,8 @@ public class CallChainTool implements MCPTool {
         long startedAt = System.nanoTime();
         PersistentScopeIndex index = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
-                JsonUtils.getPath(arguments, "scopePath"),
+                arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
+                        ? JsonUtils.getPath(arguments, "scopePath") : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false)
         );
         String owner = JsonUtils.getString(arguments, "className", "").replace('.', '/');

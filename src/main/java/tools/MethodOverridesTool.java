@@ -90,6 +90,8 @@ public class MethodOverridesTool implements MCPTool {
                     structured.addProperty("matchCount", methods.size());
                     structured.addProperty("indexBackend", "sqlite");
                     structured.addProperty("scopeArchiveCount", scope.scopeArchiveCount());
+                    structured.addProperty("queryMillis", (System.nanoTime() - startedAt) / 1_000_000L);
+                    structured.addProperty("indexPath", scope.databasePath().toString());
                     IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
                     structured.add("matches", methods);
                     return ToolResults.structured(text.toString().trim(), structured);

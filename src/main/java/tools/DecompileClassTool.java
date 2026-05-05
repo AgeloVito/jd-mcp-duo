@@ -11,12 +11,12 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.SchemaSupport;
 import support.SidecarMetadataSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -35,24 +35,24 @@ public class DecompileClassTool implements MCPTool {
         schema.addProperty("type", "object");
 
         JsonObject properties = new JsonObject();
-        addStringProperty(properties, "path", "Path to a .class file, directory, or supported archive");
-        addStringProperty(properties, "className", "Class name when path points to a directory or archive (e.g. com.example.Main)");
-        addStringProperty(properties, "engine", "Decompiler engine: auto, jd-core-duo, jd-core-v1, jd-core-v0, cfr, procyon, fernflower, vineflower, jadx");
-        addStringProperty(properties, "profile", "Decompilation profile: fast, accurate, or debuggable");
-        addIntegerProperty(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime");
-        addIntegerProperty(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout");
-        addBooleanProperty(properties, "lineNumbers", "Include line number metadata", false);
-        addStringProperty(properties, "renderLineNumbers", "Render visible line numbers in output/source files: decompiled, source, both, or none");
-        addBooleanProperty(properties, "writeSidecarMetadata", "Write a .meta.json sidecar next to the exported source file", false);
-        addBooleanProperty(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
-        addStringOrArrayProperty(properties, "classpath", "Additional classpath entries");
+        SchemaSupport.addString(properties, "path", "Path to a .class file, directory, or supported archive");
+        SchemaSupport.addString(properties, "className", "Class name when path points to a directory or archive (e.g. com.example.Main)");
+        SchemaSupport.addString(properties, "engine", "Decompiler engine: auto, jd-core-duo, jd-core-v1, jd-core-v0, cfr, procyon, fernflower, vineflower, jadx");
+        SchemaSupport.addString(properties, "profile", "Decompilation profile: fast, accurate, or debuggable");
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime");
+        SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout");
+        SchemaSupport.addBoolean(properties, "lineNumbers", "Include line number metadata", false);
+        SchemaSupport.addString(properties, "renderLineNumbers", "Render visible line numbers in output/source files: decompiled, source, both, or none");
+        SchemaSupport.addBoolean(properties, "writeSidecarMetadata", "Write a .meta.json sidecar next to the exported source file", false);
+        SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
+        SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
 
         JsonObject preferencesProp = new JsonObject();
         preferencesProp.addProperty("type", "object");
         preferencesProp.addProperty("description", "Per-engine raw preferences passed to transformer-api");
         properties.add("preferences", preferencesProp);
 
-        addStringProperty(properties, "output", "Optional output file path");
+        SchemaSupport.addString(properties, "output", "Optional output file path");
 
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
@@ -65,7 +65,7 @@ public class DecompileClassTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) throws Exception {
         Path path = JsonUtils.getRequiredPath(arguments, "path");
         if (!Files.exists(path)) {
-            throw new IOException("File not found: " + path);
+            throw new IllegalArgumentException("File not found: " + path);
         }
 
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
@@ -89,7 +89,9 @@ public class DecompileClassTool implements MCPTool {
                 if (outputPath.getParent() != null) {
                     Files.createDirectories(outputPath.getParent());
                 }
-                Files.writeString(outputPath, renderLineNumbers == null ? outcome.result().getDecompiledOutput() : renderedSource);
+                String sourceToWrite = renderLineNumbers != null ? renderedSource
+                        : outcome.result() != null ? outcome.result().getDecompiledOutput() : "";
+                Files.writeString(outputPath, sourceToWrite);
                 if (writeSidecarMetadata) {
                     SidecarMetadataSupport.writeFile(outputPath, structured);
                 }
@@ -121,37 +123,5 @@ public class DecompileClassTool implements MCPTool {
         }
 
         throw new IllegalArgumentException("className is required when the input contains multiple classes");
-    }
-
-    private static void addStringProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "string");
-        property.addProperty("description", description);
-        properties.add(name, property);
-    }
-
-    private static void addBooleanProperty(JsonObject properties, String name, String description, boolean defaultValue) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "boolean");
-        property.addProperty("description", description);
-        property.addProperty("default", defaultValue);
-        properties.add(name, property);
-    }
-
-    private static void addIntegerProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("type", "integer");
-        property.addProperty("description", description);
-        properties.add(name, property);
-    }
-
-    private static void addStringOrArrayProperty(JsonObject properties, String name, String description) {
-        JsonObject property = new JsonObject();
-        property.addProperty("description", description);
-        JsonArray types = new JsonArray();
-        types.add("string");
-        types.add("array");
-        property.add("type", types);
-        properties.add(name, property);
     }
 }
