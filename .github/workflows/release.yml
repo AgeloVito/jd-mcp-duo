@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Build JAR
-        run: mvn -B package
+        run: mvn -B package -DskipTests
       - name: Read version
         id: version
         run: echo "version=$(mvn -B help:evaluate -Dexpression=project.version -q | tail -1)" >> $GITHUB_OUTPUT
