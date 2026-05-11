@@ -17,8 +17,6 @@ import com.google.gson.JsonObject;
 import java.util.ArrayDeque;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class MethodOverridesTool implements MCPTool {
     @Override
     public String getDescription() {
@@ -72,7 +70,7 @@ public class MethodOverridesTool implements MCPTool {
 
         String desc = roots.get(0).indexedMethod().ref().descriptor();
         Set<String> relatedTypes = relatedTypes(scope, owner, depth);
-        AtomicInteger remaining = new AtomicInteger(Math.max(1, maxNodes));
+        int[] remaining = new int[]{Math.max(1, maxNodes)};
         JsonArray methods = new JsonArray();
         JsonObject structured = GraphSupport.graphMeta("overrides", depth, maxNodes);
         StringBuilder text = new StringBuilder();

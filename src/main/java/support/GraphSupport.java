@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class GraphSupport {
     private GraphSupport() {
@@ -19,13 +18,13 @@ public final class GraphSupport {
         return json;
     }
 
-    public static boolean consumeNode(AtomicInteger remaining, JsonObject rootMeta, JsonObject node) {
-        if (remaining.get() <= 0) {
+    public static boolean consumeNode(int[] remaining, JsonObject rootMeta, JsonObject node) {
+        if (remaining[0] <= 0) {
             node.addProperty("truncated", true);
             rootMeta.addProperty("truncated", true);
             return false;
         }
-        remaining.decrementAndGet();
+        remaining[0]--;
         return true;
     }
 

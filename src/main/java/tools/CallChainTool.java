@@ -18,7 +18,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class CallChainTool implements MCPTool {
     @Override
@@ -60,6 +59,8 @@ public class CallChainTool implements MCPTool {
         String direction = normalizeDirection(JsonUtils.getString(arguments, "direction", "both"));
         int depth = JsonUtils.getInt(arguments, "depth", 3);
         int maxNodes = JsonUtils.getInt(arguments, "maxNodes", 128);
+        if (depth < 1) depth = 1;
+        if (maxNodes < 1) maxNodes = 1;
 
         var candidates = index.resolveMethodCandidates(owner, methodName, descriptor);
         var broadCandidates = (descriptor != null && !descriptor.isBlank()) ? index.resolveMethodCandidates(owner, methodName, null) : candidates;
@@ -74,7 +75,6 @@ public class CallChainTool implements MCPTool {
         }
 
         ScopedMethodRef root = new ScopedMethodRef(candidates.get(0).sourcePath(), candidates.get(0).indexedMethod().ref());
-        AtomicInteger remaining = new AtomicInteger(Math.max(1, maxNodes));
         JsonObject structured = GraphSupport.graphMeta(direction, depth, maxNodes);
         structured.addProperty("resolved", true);
         structured.addProperty("indexBackend", "sqlite");
@@ -84,16 +84,18 @@ public class CallChainTool implements MCPTool {
         structured.add("root", methodJson(root));
 
         StringBuilder text = new StringBuilder();
-        text.append("Call chain for ").append(root.methodRef().displayName()).append(" @ ").append(root.sourcePath()).append('\n');
+        text.append("Call chain for ").append(humanSignature(root.methodRef())).append(" @ ").append(root.sourcePath()).append('\n');
 
         if ("callers".equals(direction) || "both".equals(direction)) {
             text.append("\nCallers:\n");
-            JsonObject callersTree = buildTreeBfs(index, root, true, depth, remaining, new HashSet<>(), structured, text);
+            int[] callerBudget = {maxNodes};
+            JsonObject callersTree = buildTreeBfs(index, root, true, depth, callerBudget, new HashSet<>(), structured, text);
             structured.add("callers", callersTree);
         }
         if ("callees".equals(direction) || "both".equals(direction)) {
             text.append("\nCallees:\n");
-            JsonObject calleesTree = buildTreeBfs(index, root, false, depth, remaining, new HashSet<>(), structured, text);
+            int[] calleeBudget = {maxNodes};
+            JsonObject calleesTree = buildTreeBfs(index, root, false, depth, calleeBudget, new HashSet<>(), structured, text);
             structured.add("callees", calleesTree);
         }
         structured.addProperty("queryMillis", (System.nanoTime() - startedAt) / 1_000_000L);
@@ -105,7 +107,7 @@ public class CallChainTool implements MCPTool {
                                             ScopedMethodRef root,
                                             boolean reverse,
                                             int depth,
-                                            AtomicInteger remaining,
+                                            int[] remaining,
                                             Set<ScopedMethodRef> visited,
                                             JsonObject graphMeta,
                                             StringBuilder text) throws Exception {
@@ -114,14 +116,14 @@ public class CallChainTool implements MCPTool {
             return rootNode;
         }
         rootNode.add("children", new JsonArray());
-        text.append("- ").append(root.methodRef().displayName()).append(" @ ").append(root.sourcePath()).append('\n');
+        text.append(humanSignature(root.methodRef())).append(" @ ").append(root.sourcePath()).append('\n');
 
-        record BfsFrame(ScopedMethodRef method, JsonObject parentNode, int currentDepth) {}
+        record BfsFrame(ScopedMethodRef method, JsonObject parentNode, int currentDepth, String prefix) {}
         Deque<BfsFrame> queue = new ArrayDeque<>();
-        queue.addLast(new BfsFrame(root, rootNode, 0));
+        queue.addLast(new BfsFrame(root, rootNode, 0, ""));
         visited.add(root);
 
-        while (!queue.isEmpty() && remaining.get() > 0 && depth > 0) {
+        while (!queue.isEmpty() && remaining[0] > 0) {
             BfsFrame frame = queue.removeFirst();
             if (frame.currentDepth() >= depth) {
                 continue;
@@ -131,14 +133,19 @@ public class CallChainTool implements MCPTool {
                     ? index.incomingScoped(frame.method().methodRef())
                     : index.outgoingScoped(frame.method().methodRef());
 
-            for (ScopedMethodRef neighbor : neighbors) {
-                if (remaining.get() <= 0) {
+            var eligible = new java.util.ArrayList<ScopedMethodRef>();
+            for (ScopedMethodRef n : neighbors) {
+                if (remaining[0] <= 0) break;
+                if (!visited.contains(n)) eligible.add(n);
+            }
+
+            for (int idx = 0; idx < eligible.size(); idx++) {
+                if (remaining[0] <= 0) {
                     graphMeta.addProperty("truncated", true);
                     break;
                 }
-                if (visited.contains(neighbor)) {
-                    continue;
-                }
+                ScopedMethodRef neighbor = eligible.get(idx);
+                boolean last = (idx == eligible.size() - 1);
                 visited.add(neighbor);
 
                 JsonObject childNode = methodJson(neighbor);
@@ -148,17 +155,20 @@ public class CallChainTool implements MCPTool {
                 }
                 childNode.add("children", new JsonArray());
                 frame.parentNode().getAsJsonArray("children").add(childNode);
-                text.append("  ".repeat(frame.currentDepth() + 1))
-                        .append("- ").append(neighbor.methodRef().displayName())
+
+                String branch = last ? "└── " : "├── ";
+                text.append(frame.prefix()).append(branch)
+                        .append(humanSignature(neighbor.methodRef()))
                         .append(" @ ").append(neighbor.sourcePath()).append('\n');
 
                 if (frame.currentDepth() + 1 < depth) {
-                    queue.addLast(new BfsFrame(neighbor, childNode, frame.currentDepth() + 1));
+                    String childPrefix = frame.prefix() + (last ? "    " : "│   ");
+                    queue.addLast(new BfsFrame(neighbor, childNode, frame.currentDepth() + 1, childPrefix));
                 }
             }
         }
 
-        if (remaining.get() <= 0) {
+        if (remaining[0] <= 0) {
             graphMeta.addProperty("truncated", true);
         }
         return rootNode;
@@ -172,8 +182,65 @@ public class CallChainTool implements MCPTool {
         json.addProperty("displayOwner", method.owner().replace('/', '.'));
         json.addProperty("name", method.name());
         json.addProperty("descriptor", method.descriptor());
+        var sig = formatSignature(method.descriptor());
+        json.addProperty("params", sig.params());
+        json.addProperty("returnType", sig.returnType());
+        json.addProperty("signature", sig.params() + ": " + sig.returnType());
         json.addProperty("displayName", method.displayName());
         return json;
+    }
+
+    private static String humanSignature(MethodRef method) {
+        var sig = formatSignature(method.descriptor());
+        return method.owner().replace('/', '.') + "." + method.name() + sig.params() + ": " + sig.returnType();
+    }
+
+    private record MethodSignature(String params, String returnType) {}
+
+    private static MethodSignature formatSignature(String descriptor) {
+        int end = descriptor.indexOf(')');
+        if (end < 0) return new MethodSignature("()", "void");
+        StringBuilder params = new StringBuilder("(");
+        int i = 1;
+        while (i < end) {
+            if (params.length() > 1) params.append(", ");
+            i = appendTypeName(descriptor, i, params);
+        }
+        params.append(')');
+        StringBuilder ret = new StringBuilder();
+        if (end + 1 < descriptor.length()) {
+            appendTypeName(descriptor, end + 1, ret);
+        } else {
+            ret.append("void");
+        }
+        return new MethodSignature(params.toString(), ret.toString());
+    }
+
+    private static int appendTypeName(String descriptor, int pos, StringBuilder sb) {
+        char ch = descriptor.charAt(pos);
+        return switch (ch) {
+            case 'B' -> { sb.append("byte");    yield pos + 1; }
+            case 'C' -> { sb.append("char");    yield pos + 1; }
+            case 'D' -> { sb.append("double");  yield pos + 1; }
+            case 'F' -> { sb.append("float");   yield pos + 1; }
+            case 'I' -> { sb.append("int");     yield pos + 1; }
+            case 'J' -> { sb.append("long");    yield pos + 1; }
+            case 'S' -> { sb.append("short");   yield pos + 1; }
+            case 'Z' -> { sb.append("boolean"); yield pos + 1; }
+            case 'V' -> { sb.append("void");    yield pos + 1; }
+            case 'L' -> {
+                int end = descriptor.indexOf(';', pos);
+                String full = descriptor.substring(pos + 1, end);
+                sb.append(full.substring(full.lastIndexOf('/') + 1));
+                yield end + 1;
+            }
+            case '[' -> {
+                int nextPos = appendTypeName(descriptor, pos + 1, sb);
+                sb.append("[]");
+                yield nextPos;
+            }
+            default -> pos + 1;
+        };
     }
 
     private static String normalizeDirection(String direction) {

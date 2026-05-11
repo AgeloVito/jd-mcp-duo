@@ -7,7 +7,7 @@
 
     <groupId>io.github.agelovito</groupId>
     <artifactId>jd-mcp-duo</artifactId>
-    <version>4.2.4.1</version>
+    <version>4.2.5.1</version>
     <packaging>jar</packaging>
 
     <name>JD MCP Duo</name>
@@ -30,7 +30,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <gson.version>2.14.0</gson.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <transformer-api.version>4.2.4</transformer-api.version>
+        <transformer-api.version>4.2.5</transformer-api.version>
     </properties>
     
 
@@ -81,12 +81,12 @@
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
-            <version>3.53.0.0</version>
+            <version>3.53.1.0</version>
         </dependency>
         <dependency>
             <groupId>de.femtopedia.dex2jar</groupId>
             <artifactId>dex-tools</artifactId>
-            <version>2.4.35</version>
+            <version>2.4.36</version>
         </dependency>
 
         <!-- Test dependencies -->

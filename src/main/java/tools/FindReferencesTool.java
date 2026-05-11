@@ -20,8 +20,6 @@ import com.google.gson.JsonObject;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class FindReferencesTool implements MCPTool {
     @Override
     public String getDescription() {
@@ -65,7 +63,7 @@ public class FindReferencesTool implements MCPTool {
         String descriptor = JsonUtils.getString(arguments, "descriptor", null);
         int depth = JsonUtils.getInt(arguments, "depth", 1);
         int maxNodes = JsonUtils.getInt(arguments, "maxNodes", 256);
-        AtomicInteger remaining = new AtomicInteger(Math.max(1, maxNodes));
+        int[] remaining = new int[]{Math.max(1, maxNodes)};
 
         JsonArray refs = new JsonArray();
         StringBuilder text = new StringBuilder();
@@ -80,7 +78,7 @@ public class FindReferencesTool implements MCPTool {
         switch (kind) {
             case "type" -> {
                 for (TypeReferenceHit hit : scope.typeReferences(owner)) {
-                    if (remaining.get() <= 0) {
+                    if (remaining[0] <= 0) {
                         structured.addProperty("truncated", true);
                         break;
                     }
@@ -148,7 +146,7 @@ public class FindReferencesTool implements MCPTool {
     private static void appendMethodRefs(Set<ScopedMethodRef> refsSet,
                                          JsonArray refs,
                                          StringBuilder text,
-                                         AtomicInteger remaining,
+                                         int[] remaining,
                                          JsonObject structured) {
         Set<ScopedMethodRef> seen = new LinkedHashSet<>();
         for (ScopedMethodRef scopedRef : refsSet) {

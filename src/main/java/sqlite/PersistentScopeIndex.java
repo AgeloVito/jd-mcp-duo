@@ -287,9 +287,66 @@ public final class PersistentScopeIndex {
                             new MethodRef(rs.getString("source_owner"), rs.getString("source_name"), rs.getString("source_desc"))
                     ));
                 }
+                results.addAll(expandVirtualCallers(connection, target));
                 return results;
             }
         }
+    }
+
+    private Set<ScopedMethodRef> expandVirtualCallers(Connection connection, MethodRef target) throws Exception {
+        String parentSql = """
+                SELECT DISTINCT parent
+                FROM (
+                    SELECT i.interface_name AS parent
+                    FROM interfaces i
+                    WHERE i.archive_path IN (%1$s) AND i.owner = ?
+                    UNION
+                    SELECT c.super_name AS parent
+                    FROM classes c
+                    WHERE c.archive_path IN (%1$s) AND c.internal_name = ? AND c.super_name IS NOT NULL
+                )
+                WHERE parent IS NOT NULL
+                """.formatted(placeholders(scopePaths.size()));
+        Set<String> parentOwners = new LinkedHashSet<>();
+        try (PreparedStatement statement = connection.prepareStatement(parentSql)) {
+            int index = bindPaths(statement, 1);
+            statement.setString(index++, target.owner());
+            statement.setString(index, target.owner());
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    parentOwners.add(rs.getString("parent"));
+                }
+            }
+        }
+
+        if (parentOwners.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<ScopedMethodRef> results = new LinkedHashSet<>();
+        String callerSql = """
+                SELECT archive_path, source_owner, source_name, source_desc
+                FROM calls
+                WHERE archive_path IN (%s) AND target_owner = ? AND target_name = ? AND target_desc = ?
+                ORDER BY archive_path, source_owner, source_name, source_desc
+                """.formatted(placeholders(scopePaths.size()));
+        try (PreparedStatement statement = connection.prepareStatement(callerSql)) {
+            for (String parent : parentOwners) {
+                int index = bindPaths(statement, 1);
+                statement.setString(index++, parent);
+                statement.setString(index++, target.name());
+                statement.setString(index, target.descriptor());
+                try (ResultSet rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        results.add(new ScopedMethodRef(
+                                Path.of(rs.getString("archive_path")),
+                                new MethodRef(rs.getString("source_owner"), rs.getString("source_name"), rs.getString("source_desc"))
+                        ));
+                    }
+                }
+            }
+        }
+        return results;
     }
 
     public Set<ScopedMethodRef> outgoingScoped(MethodRef source) throws Exception {
@@ -308,9 +365,42 @@ public final class PersistentScopeIndex {
             try (ResultSet rs = statement.executeQuery()) {
                 Set<ScopedMethodRef> results = new LinkedHashSet<>();
                 while (rs.next()) {
+                    MethodRef callee = new MethodRef(rs.getString("target_owner"), rs.getString("target_name"), rs.getString("target_desc"));
+                    results.add(new ScopedMethodRef(Path.of(rs.getString("archive_path")), callee));
+                    results.addAll(expandVirtualTargets(connection, callee));
+                }
+                return results;
+            }
+        }
+    }
+
+    private Set<ScopedMethodRef> expandVirtualTargets(Connection connection, MethodRef target) throws Exception {
+        String sql = """
+                SELECT m.archive_path, m.owner, m.name, m.descriptor
+                FROM methods m
+                WHERE m.archive_path IN (%s)
+                  AND m.name = ? AND m.descriptor = ?
+                  AND m.owner IN (
+                    SELECT DISTINCT c.internal_name
+                    FROM classes c
+                    LEFT JOIN interfaces i ON i.archive_path = c.archive_path AND i.owner = c.internal_name
+                    WHERE c.archive_path IN (%1$s)
+                      AND (c.super_name = ? OR i.interface_name = ?)
+                  )
+                ORDER BY m.archive_path, m.owner
+                """.formatted(placeholders(scopePaths.size()));
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            int index = bindPaths(statement, 1);
+            statement.setString(index++, target.name());
+            statement.setString(index++, target.descriptor());
+            statement.setString(index++, target.owner());
+            statement.setString(index, target.owner());
+            try (ResultSet rs = statement.executeQuery()) {
+                Set<ScopedMethodRef> results = new LinkedHashSet<>();
+                while (rs.next()) {
                     results.add(new ScopedMethodRef(
                             Path.of(rs.getString("archive_path")),
-                            new MethodRef(rs.getString("target_owner"), rs.getString("target_name"), rs.getString("target_desc"))
+                            new MethodRef(rs.getString("owner"), rs.getString("name"), rs.getString("descriptor"))
                     ));
                 }
                 return results;

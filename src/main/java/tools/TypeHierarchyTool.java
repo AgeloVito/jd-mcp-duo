@@ -16,8 +16,6 @@ import com.google.gson.JsonObject;
 import java.util.ArrayDeque;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class TypeHierarchyTool implements MCPTool {
     @Override
     public String getDescription() {
@@ -57,7 +55,7 @@ public class TypeHierarchyTool implements MCPTool {
         ScopedClass root = matches.get(0);
         int depth = JsonUtils.getInt(arguments, "depth", 8);
         int maxNodes = JsonUtils.getInt(arguments, "maxNodes", 256);
-        AtomicInteger remaining = new AtomicInteger(Math.max(1, maxNodes));
+        int[] remaining = new int[]{Math.max(1, maxNodes)};
 
         JsonObject structured = GraphSupport.graphMeta("both", depth, maxNodes);
         structured.addProperty("resolved", true);
@@ -79,7 +77,7 @@ public class TypeHierarchyTool implements MCPTool {
         return ToolResults.structured(text.toString().trim(), structured);
     }
 
-    private static JsonArray buildSuperChain(PersistentScopeIndex scope, ScopedClass root, int depth, AtomicInteger remaining, JsonObject graphMeta) throws Exception {
+    private static JsonArray buildSuperChain(PersistentScopeIndex scope, ScopedClass root, int depth, int[] remaining, JsonObject graphMeta) throws Exception {
         JsonArray array = new JsonArray();
         Set<String> seen = new LinkedHashSet<>();
         ArrayDeque<NodeDepth> queue = new ArrayDeque<>();
@@ -114,7 +112,7 @@ public class TypeHierarchyTool implements MCPTool {
         return array;
     }
 
-    private static JsonArray buildSubtypes(PersistentScopeIndex scope, String rootInternalName, int depth, AtomicInteger remaining, JsonObject graphMeta) throws Exception {
+    private static JsonArray buildSubtypes(PersistentScopeIndex scope, String rootInternalName, int depth, int[] remaining, JsonObject graphMeta) throws Exception {
         JsonArray array = new JsonArray();
         ArrayDeque<NodeDepth> queue = new ArrayDeque<>();
         queue.add(new NodeDepth(rootInternalName, 0));
