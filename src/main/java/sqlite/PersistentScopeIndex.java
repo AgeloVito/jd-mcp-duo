@@ -548,6 +548,10 @@ public final class PersistentScopeIndex {
     }
 
     public List<ScopedResource> resources(List<String> resourceTypes) throws Exception {
+        return resources(resourceTypes, null);
+    }
+
+    public List<ScopedResource> resources(List<String> resourceTypes, String entryPathLike) throws Exception {
         StringBuilder sql = new StringBuilder("""
                 SELECT archive_path, entry_path, resource_type, text_content
                 FROM resources
@@ -559,6 +563,9 @@ public final class PersistentScopeIndex {
         if (!normalizedTypes.isEmpty()) {
             sql.append(" AND resource_type IN (").append(placeholders(normalizedTypes.size())).append(')');
         }
+        if (entryPathLike != null && !entryPathLike.isBlank()) {
+            sql.append(" AND entry_path LIKE ?");
+        }
         sql.append(" ORDER BY archive_path, entry_path");
 
         try (Connection connection = connect();
@@ -566,6 +573,9 @@ public final class PersistentScopeIndex {
             int index = bindPaths(statement, 1);
             for (String resourceType : normalizedTypes) {
                 statement.setString(index++, resourceType);
+            }
+            if (entryPathLike != null && !entryPathLike.isBlank()) {
+                statement.setString(index++, entryPathLike);
             }
             try (ResultSet rs = statement.executeQuery()) {
                 List<ScopedResource> results = new ArrayList<>();

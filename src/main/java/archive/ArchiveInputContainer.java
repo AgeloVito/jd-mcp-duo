@@ -152,7 +152,6 @@ public final class ArchiveInputContainer implements InputContainer {
         List<ResourceEntry> resources = zipFile.stream()
                 .filter(entry -> !entry.isDirectory())
                 .filter(entry -> !entry.getName().endsWith(".class"))
-                .filter(entry -> !isDependencyArchiveEntry(entry.getName(), false))
                 .map(entry -> new ResourceEntry(entry.getName()))
                 .sorted(Comparator.comparing(ResourceEntry::entryName))
                 .toList();

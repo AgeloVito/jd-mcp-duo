@@ -3,6 +3,7 @@ package cli;
 import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
+import support.ProgressReporter;
 import support.StdoutGuard;
 import support.VersionSupport;
 import com.google.gson.Gson;
@@ -73,7 +74,13 @@ public class CliMode {
         MCPTool tool = tools.get(toolName);
         try {
             logger.info("Running tool: {}", toolName);
-            ToolResult result = StdoutGuard.callSilenced(() -> tool.execute(arguments));
+            ProgressReporter reporter = new ProgressReporter(null, toolName);
+            reporter.report(0, 0);
+            ToolResult result = StdoutGuard.callSilenced(() -> tool.execute(arguments, reporter));
+            reporter.done();
+            long elapsed = reporter.elapsedMillis();
+            String elapsedStr = elapsed >= 1000 ? String.format("%.1fs", elapsed / 1000.0) : elapsed + "ms";
+            err.printf("[jd-mcp-duo] %s completed (%s)%n", toolName, elapsedStr);
             if (jsonOutput) {
                 JsonObject json = new JsonObject();
                 json.addProperty("text", result.text());

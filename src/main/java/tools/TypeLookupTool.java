@@ -28,6 +28,7 @@ public class TypeLookupTool implements MCPTool {
         SchemaSupport.addString(properties, "queryMode", "plain, wildcard, or regex");
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
+        SchemaSupport.addBoolean(properties, "caseSensitive", "Enable case-sensitive matching", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum results", 50);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "query");
@@ -38,9 +39,10 @@ public class TypeLookupTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) throws Exception {
         String query = JsonUtils.getString(arguments, "query", "");
         String queryMode = JsonUtils.getString(arguments, "queryMode", "plain");
+        boolean caseSensitive = JsonUtils.getBoolean(arguments, "caseSensitive", false);
         int limit = JsonUtils.getInt(arguments, "limit", 50);
         long startedAt = System.nanoTime();
-        Pattern pattern = pattern(query, queryMode);
+        Pattern pattern = buildPattern(query, queryMode, caseSensitive);
 
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
@@ -79,11 +81,29 @@ public class TypeLookupTool implements MCPTool {
         return ToolResults.structured(text.toString().trim(), structured);
     }
 
-    private static Pattern pattern(String query, String queryMode) {
+    private static Pattern buildPattern(String query, String queryMode, boolean caseSensitive) {
+        int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE;
         return switch (queryMode.toLowerCase()) {
-            case "regex" -> Pattern.compile(query, Pattern.CASE_INSENSITIVE);
-            case "wildcard" -> Pattern.compile(query.replace(".", "\\.").replace("*", ".*").replace("?", "."), Pattern.CASE_INSENSITIVE);
-            default -> Pattern.compile(Pattern.quote(query), Pattern.CASE_INSENSITIVE);
+            case "regex" -> Pattern.compile(query, flags);
+            case "wildcard" -> Pattern.compile(wildcardToRegex(query), flags);
+            default -> Pattern.compile(Pattern.quote(query), flags);
         };
+    }
+
+    private static String wildcardToRegex(String query) {
+        StringBuilder regex = new StringBuilder();
+        for (char ch : query.toCharArray()) {
+            switch (ch) {
+                case '*' -> regex.append(".*");
+                case '?' -> regex.append('.');
+                default -> {
+                    if ("\\.[]{}()+-^$|".indexOf(ch) >= 0) {
+                        regex.append('\\');
+                    }
+                    regex.append(ch);
+                }
+            }
+        }
+        return regex.toString();
     }
 }

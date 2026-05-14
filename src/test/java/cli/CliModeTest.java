@@ -78,6 +78,6 @@ class CliModeTest {
         JsonParser.parseString(stdout.toString()).getAsJsonObject();
         assertTrue(stdout.toString().contains("\"isError\": false"));
         assertTrue(stdout.toString().contains("class App"));
-        assertTrue(stderr.toString().isBlank());
+        assertTrue(stderr.toString().contains("[jd-mcp-duo]"));
     }
 }

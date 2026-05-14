@@ -11,6 +11,7 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.ProgressReporter;
 import support.SchemaSupport;
 import support.SidecarMetadataSupport;
 import support.ToolResults;
@@ -55,6 +56,12 @@ public class SaveAllSourcesTool implements MCPTool {
 
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
+        return execute(arguments, new ProgressReporter(null, "save_all_sources"));
+    }
+
+    @Override
+    public ToolResult execute(JsonObject arguments, ProgressReporter reporter) throws Exception {
+        reporter.report(0, 0);
         Path input = JsonUtils.getRequiredPath(arguments, "path");
         Path output = JsonUtils.getRequiredPath(arguments, "output");
         String format = JsonUtils.getString(arguments, "format", output.toString().endsWith(".jar") ? "sources-jar" : "directory");
@@ -72,10 +79,13 @@ public class SaveAllSourcesTool implements MCPTool {
                     Files.createDirectories(output.getParent());
                 }
                 try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(output))) {
-                    for (ClassLocation location : container.listClasses(false)) {
+                    var classes = container.listClasses(false);
+                    int total = classes.size();
+                    int idx = 0;
+                    for (ClassLocation location : classes) {
                         try {
                             DecompilationOutcome outcome = session.decompile(location.internalName());
-                            String sourceEntryName = location.internalName() + ".java";
+                            String sourceEntryName = location.entryName().replaceAll("\\.class$", ".java");
                             jarOutputStream.putNextEntry(new JarEntry(sourceEntryName));
                             jarOutputStream.write(LineNumberRenderer.render(outcome, renderLineNumbers).getBytes(StandardCharsets.UTF_8));
                             jarOutputStream.closeEntry();
@@ -89,6 +99,7 @@ public class SaveAllSourcesTool implements MCPTool {
                         } catch (Exception e) {
                             failures.add(failure(location, e));
                         }
+                        reporter.report(++idx, total);
                     }
                     for (ResourceEntry resource : container.listResources()) {
                         try {
@@ -111,10 +122,13 @@ public class SaveAllSourcesTool implements MCPTool {
                 }
             } else {
                 Files.createDirectories(output);
-                for (ClassLocation location : container.listClasses(false)) {
+                var classes = container.listClasses(false);
+                int total = classes.size();
+                int idx = 0;
+                for (ClassLocation location : classes) {
                     try {
                         DecompilationOutcome outcome = session.decompile(location.internalName());
-                        Path javaFile = output.resolve(location.internalName() + ".java");
+                        Path javaFile = output.resolve(location.entryName().replaceAll("\\.class$", ".java"));
                         Files.createDirectories(javaFile.getParent());
                         Files.writeString(javaFile, LineNumberRenderer.render(outcome, renderLineNumbers));
                         if (writeSidecarMetadata) {
@@ -131,11 +145,12 @@ public class SaveAllSourcesTool implements MCPTool {
                     } catch (Exception e) {
                         failures.add(failure(location, e));
                     }
+                    reporter.report(++idx, total);
                 }
             }
 
-            resourcesCopied = new JsonArray();
             if (!"sources-jar".equals(format)) {
+                resourcesCopied = new JsonArray();
                 for (ResourceEntry resource : container.listResources()) {
                     try {
                         byte[] bytes = container.loadResourceBytes(resource.entryName());

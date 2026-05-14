@@ -117,6 +117,7 @@ public class FindReferencesTool implements MCPTool {
                 if (descriptor != null && !descriptor.isBlank() && methods.size() > 1) {
                     return ResolutionSupport.unresolvedMethodSourceAmbiguous(owner, methodName, descriptor, methods);
                 }
+                structured.addProperty("targetDescriptor", methods.get(0).indexedMethod().ref().descriptor());
                 appendMethodRefs(scope.incomingScoped(methods.get(0).indexedMethod().ref()), refs, text, remaining, structured);
             }
             case "field" -> {
@@ -130,6 +131,7 @@ public class FindReferencesTool implements MCPTool {
                 if (descriptor != null && !descriptor.isBlank() && fields.size() > 1) {
                     return ResolutionSupport.unresolvedFieldSourceAmbiguous(owner, fieldName, descriptor, fields);
                 }
+                structured.addProperty("targetDescriptor", fields.get(0).indexedField().descriptor());
                 appendMethodRefs(scope.incomingScoped(new FieldRef(fields.get(0).indexedField().owner(), fields.get(0).indexedField().name(), fields.get(0).indexedField().descriptor())), refs, text, remaining, structured);
             }
             default -> {

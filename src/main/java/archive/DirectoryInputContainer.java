@@ -95,7 +95,6 @@ public final class DirectoryInputContainer implements InputContainer {
             return stream
                     .filter(Files::isRegularFile)
                     .filter(path -> !path.toString().endsWith(".class"))
-                    .filter(path -> !InputContainers.isArchivePath(path))
                     .map(path -> {
                         Path relative = root.relativize(path.toAbsolutePath().normalize());
                         return new ResourceEntry(relative.toString().replace('\\', '/'));

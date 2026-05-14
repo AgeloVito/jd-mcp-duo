@@ -10,6 +10,7 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.ProgressReporter;
 import support.SchemaSupport;
 import support.SidecarMetadataSupport;
 import support.ToolResults;
@@ -54,6 +55,12 @@ public class DecompileDirectoryTool implements MCPTool {
 
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
+        return execute(arguments, new ProgressReporter(null, "decompile_directory"));
+    }
+
+    @Override
+    public ToolResult execute(JsonObject arguments, ProgressReporter reporter) throws Exception {
+        reporter.report(0, 0);
         Path root = JsonUtils.getRequiredPath(arguments, "path");
         Path outputDir = JsonUtils.getRequiredPath(arguments, "outputDir");
         boolean recursive = JsonUtils.getBoolean(arguments, "recursive", true);
@@ -88,6 +95,8 @@ public class DecompileDirectoryTool implements MCPTool {
                 inputs = inputs.subList(0, fileLimit);
             }
 
+            int total = inputs.size();
+            int idx = 0;
             for (Path input : inputs) {
                 Path relativeInput = root.relativize(input);
                 JsonObject item = new JsonObject();
@@ -141,7 +150,7 @@ public class DecompileDirectoryTool implements MCPTool {
                                 classResult.addProperty("internalName", location.internalName());
                                 try {
                                     var outcome = session.decompile(location.internalName());
-                                    Path outputFile = archiveOutputRoot.resolve(location.internalName() + ".java");
+                                    Path outputFile = archiveOutputRoot.resolve(location.entryName().replaceAll("\\.class$", ".java"));
                                     Files.createDirectories(outputFile.getParent());
                                     Files.writeString(outputFile, LineNumberRenderer.render(outcome, renderLineNumbers));
                                     if (writeSidecarMetadata) {
@@ -235,6 +244,7 @@ public class DecompileDirectoryTool implements MCPTool {
                     item.addProperty("successCount", 0);
                     failures.add(item);
                 }
+                reporter.report(++idx, total);
             }
         }
 

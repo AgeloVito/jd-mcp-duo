@@ -2,6 +2,7 @@ package server;
 
 import cli.CliMode;
 import model.*;
+import support.ProgressReporter;
 import support.StdoutGuard;
 import tools.*;
 import com.google.gson.Gson;
@@ -336,8 +337,18 @@ public class MCPServer {
 
         logger.info("Calling tool: {}", toolName);
 
+        String progressToken = ProgressReporter.extractProgressToken(params);
+        ProgressReporter reporter = new ProgressReporter(progressToken, toolName, StdoutGuard.originalStdout());
+        reporter.report(0, 0); // send start notification
+
         try {
-            ToolResult result = StdoutGuard.callSilenced(() -> tool.execute(arguments));
+            ToolResult result = StdoutGuard.callSilenced(() -> tool.execute(arguments, reporter));
+            reporter.done(); // send completion notification
+            long elapsed = reporter.elapsedMillis();
+            String elapsedStr = elapsed >= 1000 ? String.format("%.1fs", elapsed / 1000.0) : elapsed + "ms";
+            String summary = result.isError() ? "FAILED" : "completed";
+            System.err.printf("[jd-mcp-duo] %s %s (%s)%n", toolName, summary, elapsedStr);
+
             JsonObject resultObj = new JsonObject();
             JsonArray content = new JsonArray();
             JsonObject textContent = new JsonObject();
@@ -349,10 +360,15 @@ public class MCPServer {
                 resultObj.add("structuredContent", result.structuredData());
             }
             resultObj.addProperty("isError", result.isError());
-            
+
             return createSuccessResponse(id, resultObj);
         } catch (Exception e) {
+            reporter.done();
             logger.error("Tool execution failed: {}", toolName, e);
+            long elapsed = reporter.elapsedMillis();
+            String elapsedStr = elapsed >= 1000 ? String.format("%.1fs", elapsed / 1000.0) : elapsed + "ms";
+            System.err.printf("[jd-mcp-duo] %s FAILED: %s (%s)%n", toolName, e.getMessage(), elapsedStr);
+
             JsonObject resultObj = new JsonObject();
             JsonArray content = new JsonArray();
             JsonObject textContent = new JsonObject();

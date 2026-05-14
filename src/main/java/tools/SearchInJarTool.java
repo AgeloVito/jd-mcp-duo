@@ -36,6 +36,7 @@ public class SearchInJarTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "caseSensitive", "Enable case-sensitive matching", false);
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
+        SchemaSupport.addBoolean(properties, "distinct", "Deduplicate string results by text", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum number of results", 50);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "query");
@@ -48,6 +49,7 @@ public class SearchInJarTool implements MCPTool {
         String type = JsonUtils.getString(arguments, "type", "all").toLowerCase();
         String queryMode = JsonUtils.getString(arguments, "queryMode", "plain").toLowerCase();
         boolean caseSensitive = JsonUtils.getBoolean(arguments, "caseSensitive", false);
+        boolean distinct = JsonUtils.getBoolean(arguments, "distinct", false);
         int limit = JsonUtils.getInt(arguments, "limit", 50);
         long startedAt = System.nanoTime();
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
@@ -70,8 +72,11 @@ public class SearchInJarTool implements MCPTool {
         appendClassResults(scope, type, pattern, results, text, limit);
         appendFieldResults(scope, type, pattern, results, text, limit);
         appendMethodResults(scope, type, pattern, results, text, limit);
-        appendStringResults(scope, type, pattern, results, text, limit);
-        int resourceResults = appendResourceResults(scope, type, pattern, results, text, limit);
+        appendStringResults(scope, type, pattern, results, text, limit, distinct);
+        int resourceResults = appendResourceResults(scope, type, pattern, results, text, limit, null);
+        // Performance note: for plain mode on large archives, consider passing
+        // likeEncode(query) as entryPathLike to resources() for SQL-level pre-filtering.
+        // Currently disabled because queries may match text content, not just path.
 
         JsonObject structured = new JsonObject();
         structured.addProperty("query", query);
@@ -96,12 +101,13 @@ public class SearchInJarTool implements MCPTool {
                                              Pattern pattern,
                                              JsonArray results,
                                              StringBuilder text,
-                                             int limit) throws Exception {
+                                             int limit,
+                                             String pathLike) throws Exception {
         if (!matchesType(type, "resource", "xml", "properties", "service", "services", "manifest", "yaml", "yml", "json", "all", "allresources")) {
             return 0;
         }
         int added = 0;
-        for (ScopedResource scopedResource : scope.resources(resourceTypesFor(type))) {
+        for (ScopedResource scopedResource : scope.resources(resourceTypesFor(type), pathLike)) {
             if (results.size() >= limit) {
                 break;
             }
@@ -261,16 +267,20 @@ public class SearchInJarTool implements MCPTool {
         }
     }
 
-    private static void appendStringResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit) throws Exception {
+    private static void appendStringResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, boolean distinct) throws Exception {
         if (!matchesType(type, "string", "all")) {
             return;
         }
+        java.util.HashSet<String> seenTexts = distinct ? new java.util.HashSet<>() : null;
         for (ScopedStringHit scopedHit : scope.strings()) {
             if (results.size() >= limit) {
                 return;
             }
             var stringHit = scopedHit.stringHit();
             if (!pattern.matcher(stringHit.text()).find()) {
+                continue;
+            }
+            if (distinct && !seenTexts.add(stringHit.text())) {
                 continue;
             }
             JsonObject result = new JsonObject();
@@ -321,5 +331,18 @@ public class SearchInJarTool implements MCPTool {
             }
         }
         return regex.toString();
+    }
+
+    private static String likeEncode(String query) {
+        StringBuilder like = new StringBuilder();
+        like.append('%');
+        for (char ch : query.toCharArray()) {
+            if (ch == '%' || ch == '_') {
+                like.append('\\');
+            }
+            like.append(ch);
+        }
+        like.append('%');
+        return like.toString();
     }
 }

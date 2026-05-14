@@ -14,6 +14,11 @@ public final class StdoutGuard {
     private StdoutGuard() {
     }
 
+    public static PrintStream originalStdout() {
+        installIfNeeded();
+        return delegate;
+    }
+
     public static <T> T callSilenced(Callable<T> callable) throws Exception {
         return callRouted(NULL_PRINT_STREAM, callable);
     }

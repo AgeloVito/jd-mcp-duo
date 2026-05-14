@@ -10,6 +10,7 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.ProgressReporter;
 import support.SchemaSupport;
 import support.SidecarMetadataSupport;
 import support.ToolResults;
@@ -58,6 +59,12 @@ public class BatchDecompileTool implements MCPTool {
 
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
+        return execute(arguments, new ProgressReporter(null, "batch_decompile"));
+    }
+
+    @Override
+    public ToolResult execute(JsonObject arguments, ProgressReporter reporter) throws Exception {
+        reporter.report(0, 0);
         Path path = JsonUtils.getRequiredPath(arguments, "path");
         if (!Files.isDirectory(path)) {
             throw new IllegalArgumentException("Path must be a directory: " + path);
@@ -81,6 +88,8 @@ public class BatchDecompileTool implements MCPTool {
             StringBuilder text = new StringBuilder();
             text.append("Batch decompile from ").append(path).append('\n');
 
+            int total = classes.size();
+            int idx = 0;
             for (ClassLocation location : classes) {
                 JsonObject item = new JsonObject();
                 item.addProperty("className", location.displayName());
@@ -97,7 +106,7 @@ public class BatchDecompileTool implements MCPTool {
                         }
                     }
                     if (outputDir != null && !outputDir.isBlank()) {
-                        Path outputPath = Path.of(outputDir).resolve(location.internalName() + ".java");
+                        Path outputPath = Path.of(outputDir).resolve(location.entryName().replaceAll("\\.class$", ".java"));
                         Files.createDirectories(outputPath.getParent());
                         Files.writeString(outputPath, LineNumberRenderer.render(outcome, renderLineNumbers));
                         if (writeSidecarMetadata) {
@@ -119,6 +128,7 @@ public class BatchDecompileTool implements MCPTool {
                     text.append("❌ ").append(location.displayName()).append(" - ").append(e.getMessage()).append('\n');
                 }
                 results.add(item);
+                reporter.report(++idx, total);
             }
 
             JsonObject structured = new JsonObject();

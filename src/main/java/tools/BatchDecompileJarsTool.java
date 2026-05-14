@@ -9,6 +9,7 @@ import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
 import support.LineNumberRenderer;
+import support.ProgressReporter;
 import support.SchemaSupport;
 import support.SidecarMetadataSupport;
 import support.ToolResults;
@@ -63,6 +64,12 @@ public class BatchDecompileJarsTool implements MCPTool {
 
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
+        return execute(arguments, new ProgressReporter(null, "batch_decompile_jars"));
+    }
+
+    @Override
+    public ToolResult execute(JsonObject arguments, ProgressReporter reporter) throws Exception {
+        reporter.report(0, 0);
         Path directory = JsonUtils.getRequiredPath(arguments, "path");
         if (!Files.isDirectory(directory)) {
             throw new IllegalArgumentException("Path must be a directory: " + directory);
@@ -102,6 +109,8 @@ public class BatchDecompileJarsTool implements MCPTool {
                     if (classLimit > 0 && classes.size() > classLimit) {
                         classes = classes.subList(0, classLimit);
                     }
+                    int total = classes.size();
+                    int idx = 0;
                     for (ClassLocation location : classes) {
                         JsonObject item = new JsonObject();
                         item.addProperty("className", location.displayName());
@@ -119,7 +128,7 @@ public class BatchDecompileJarsTool implements MCPTool {
                             if (outputDir != null && !outputDir.isBlank()) {
                                 Path outputPath = Path.of(outputDir)
                                         .resolve(directory.relativize(path).toString())
-                                        .resolve(location.internalName() + ".java");
+                                        .resolve(location.entryName().replaceAll("\\.class$", ".java"));
                                 Files.createDirectories(outputPath.getParent());
                                 Files.writeString(outputPath, LineNumberRenderer.render(outcome, renderLineNumbers));
                                 if (writeSidecarMetadata) {
@@ -133,6 +142,7 @@ public class BatchDecompileJarsTool implements MCPTool {
                             item.addProperty("error", e.getMessage());
                         }
                         classResults.add(item);
+                        reporter.report(++idx, total);
                     }
                     archiveJson.addProperty("classCount", classes.size());
                 } catch (Exception e) {
