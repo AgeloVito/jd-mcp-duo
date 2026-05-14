@@ -104,13 +104,26 @@ jd-mcp-duo\bin\jd-mcp-duo.bat --help
 
 ### MCP server mode
 
-Configure your MCP client:
+Configure your MCP client. Choose one:
+
+```bash
+# Option A: claude mcp add (recommended)
+claude mcp add --transport stdio --scope user jd-mcp-duo -- /path/to/jd-mcp-duo/bin/jd-mcp-duo
+
+# Verify it was added
+claude mcp list
+claude mcp get jd-mcp-duo
+```
 
 ```json
+// Option B: directly in ~/.claude.json
 {
   "mcpServers": {
     "jd-mcp-duo": {
-      "command": "/path/to/jd-mcp-duo/bin/jd-mcp-duo"
+      "type": "stdio",
+      "command": "/path/to/jd-mcp-duo/bin/jd-mcp-duo",
+      "args": [],
+      "env": {}
     }
   }
 }

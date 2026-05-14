@@ -103,13 +103,26 @@ jd-mcp-duo\bin\jd-mcp-duo.bat --help
 
 ### MCP 服务模式
 
-在 MCP 客户端中配置：
+在 MCP 客户端中配置。以下方式任选其一：
+
+```bash
+# 方式一：claude mcp add 命令（推荐）
+claude mcp add --transport stdio --scope user jd-mcp-duo -- /path/to/jd-mcp-duo/bin/jd-mcp-duo
+
+# 验证是否添加成功
+claude mcp list
+claude mcp get jd-mcp-duo
+```
 
 ```json
+// 方式二：直接编辑 ~/.claude.json
 {
   "mcpServers": {
     "jd-mcp-duo": {
-      "command": "/path/to/jd-mcp-duo/bin/jd-mcp-duo"
+      "type": "stdio",
+      "command": "/path/to/jd-mcp-duo/bin/jd-mcp-duo",
+      "args": [],
+      "env": {}
     }
   }
 }
