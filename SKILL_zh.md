@@ -14,17 +14,26 @@ help
 → jd-mcp-duo mcp server is alive. 33 tools available: decompile_class, ...
 ```
 
+## 安装位置
+
+> **只需修改 `{安装目录}` 一处，其余路径自动推导。**
+
+```
+安装目录: {安装目录}          ← 改成你的路径，如 D:/tools/tools/java/jd-mcp-duo/
+CLI 入口: {安装目录}/bin/jd-mcp-duo(.bat)
+JAR 文件: {安装目录}/lib/jd-mcp-duo.jar
+版本: v4.2.5.2 (内置 JRE 25)
+```
+
 ## 使用方式
 
-本 Skill 通过 MCP 协议调用 jd-mcp-duo 工具，**无需关心安装路径**。直接描述需求即可：
+MCP 模式直接用 `/jd-mcp-duo ...`，无需关心路径。
 
-> /jd-mcp-duo 帮我反编译 app.jar
-
-### CLI 模式（可选）
+### CLI 模式
 
 ```bash
-jd-mcp-duo <tool-name> [options]
-java -Xss10m -jar jd-mcp-duo.jar <tool-name> [options]
+{安装目录}/bin/jd-mcp-duo <tool-name> [options]
+java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar <tool-name> [options]
 ```
 
 参数格式：`--key=value` 或 `--key value`。加 `--json` 输出结构化 JSON。
@@ -32,11 +41,8 @@ java -Xss10m -jar jd-mcp-duo.jar <tool-name> [options]
 ### MCP 配置
 
 ```bash
-claude mcp add --transport stdio --scope user jd-mcp-duo -- /path/to/jd-mcp-duo/bin/jd-mcp-duo
-claude mcp list && claude mcp get jd-mcp-duo  # 验证
+claude mcp add --transport stdio --scope user jd-mcp-duo -- {安装目录}/bin/jd-mcp-duo
 ```
-
-v4.2.5.2，内置 JRE 25，支持协议 2025-11-25 等。
 
 ## 工具清单（33 个）
 
@@ -205,64 +211,64 @@ JAVA_TOOL_OPTIONS="-Djd.mcp.sqlite.index=./.jd-mcp-duo/index.sqlite"
 
 ```bash
 # 1. 反编译整个 WAR 保留目录结构（最常用）
-jd-mcp-duo save_all_sources --path={project}/app.war --output={output}/app-src
+{安装目录}/bin/jd-mcp-duo save_all_sources --path={project}/app.war --output={output}/app-src
 
 # 2. 反编译目录下所有 .class 和 archive，保留相对路径
-jd-mcp-duo decompile_directory --path={project}/WEB-INF --outputDir={output}/decompiled --recursive=true
+{安装目录}/bin/jd-mcp-duo decompile_directory --path={project}/WEB-INF --outputDir={output}/decompiled --recursive=true
 
 # 3. 从目录根反编译指定多个类
-jd-mcp-duo batch_decompile --path={project}/classes --classes=com.example.Controller,com.example.Service
+{安装目录}/bin/jd-mcp-duo batch_decompile --path={project}/classes --classes=com.example.Controller,com.example.Service
 
 # 4. 跨多个 JAR 反编译指定类（递归扫描 + glob 过滤）
-jd-mcp-duo batch_decompile_jars --path={project}/libs --classes=com.example.Dao --recursive=true --pattern="*.jar"
+{安装目录}/bin/jd-mcp-duo batch_decompile_jars --path={project}/libs --classes=com.example.Dao --recursive=true --pattern="*.jar"
 
 # 5. 反编译并输出为 sources JAR
-jd-mcp-duo save_all_sources --path={project}/app.jar --output={output}/sources.jar --format=sources-jar
+{安装目录}/bin/jd-mcp-duo save_all_sources --path={project}/app.jar --output={output}/sources.jar --format=sources-jar
 
 # 6. 分析 archive 概览并预览单个类
-jd-mcp-duo decompile_jar --path={project}/app.jar --decompile=true --className=com.example.Main --limit=20
+{安装目录}/bin/jd-mcp-duo decompile_jar --path={project}/app.jar --decompile=true --className=com.example.Main --limit=20
 ```
 
 ### 搜索与分析
 
 ```bash
 # 7. 搜索敏感字符串（密码、密钥等）— 支持通配符和正则
-jd-mcp-duo search_in_jar --path={project}/app.jar --query=password --type=string --queryMode=wildcard
+{安装目录}/bin/jd-mcp-duo search_in_jar --path={project}/app.jar --query=password --type=string --queryMode=wildcard
 
 # 8. 查找所有 Controller 类（通配符模式）
-jd-mcp-duo type_lookup --path={project}/app.jar --query="*Controller" --queryMode=wildcard
+{安装目录}/bin/jd-mcp-duo type_lookup --path={project}/app.jar --query="*Controller" --queryMode=wildcard
 
 # 9. 查看类元数据（路由映射）
-jd-mcp-duo class_metadata --path={project}/app.jar --className=com.example.LoginController
+{安装目录}/bin/jd-mcp-duo class_metadata --path={project}/app.jar --className=com.example.LoginController
 
 # 10. 追踪调用链（从 Controller 到 DAO）
-jd-mcp-duo call_chain --path={project}/app.jar --className=com.example.Controller --methodName=upload --direction=callees --depth=5
+{安装目录}/bin/jd-mcp-duo call_chain --path={project}/app.jar --className=com.example.Controller --methodName=upload --direction=callees --depth=5
 
 # 11. 查找方法所有调用者
-jd-mcp-duo find_references --path={project}/app.jar --className=com.example.Util --kind=method --methodName=execute
+{安装目录}/bin/jd-mcp-duo find_references --path={project}/app.jar --className=com.example.Util --kind=method --methodName=execute
 
 # 12. 查看方法控制流图（Mermaid 格式）
-jd-mcp-duo show_cfg --path={project}/app.jar --className=com.example.Service --methodName=process --format=mermaid
+{安装目录}/bin/jd-mcp-duo show_cfg --path={project}/app.jar --className=com.example.Service --methodName=process --format=mermaid
 ```
 
 ### 依赖与诊断
 
 ```bash
 # 13. 提取 Maven 依赖用于漏洞匹配
-jd-mcp-duo list_dependencies --path={project}/app.war --format=text --output={output}/deps.txt
+{安装目录}/bin/jd-mcp-duo list_dependencies --path={project}/app.war --format=text --output={output}/deps.txt
 
 # 14. 构建项目骨架推断依赖
-jd-mcp-duo build_skeleton --path={project}/libs --outputDir={output}/skeleton
+{安装目录}/bin/jd-mcp-duo build_skeleton --path={project}/libs --outputDir={output}/skeleton
 
 # 15. 从 Maven Central 查找原始源码
-jd-mcp-duo source_lookup --path={project}/app.jar --className=com.example.Main --saveTo={output}/Main.java
+{安装目录}/bin/jd-mcp-duo source_lookup --path={project}/app.jar --className=com.example.Main --saveTo={output}/Main.java
 
 # 16. 反编译质量报告
-jd-mcp-duo source_quality_report --path={project}/app.jar
+{安装目录}/bin/jd-mcp-duo source_quality_report --path={project}/app.jar
 
 # 17. 解析异常栈帧到源码行号
-jd-mcp-duo resolve_stacktrace --path={project}/app.jar --text="at com.example.Service.process(Service.java:42)"
+{安装目录}/bin/jd-mcp-duo resolve_stacktrace --path={project}/app.jar --text="at com.example.Service.process(Service.java:42)"
 
 # 18. 从日志文件解析栈帧（跨多个 archive）
-jd-mcp-duo resolve_stacktrace --path={project}/app.jar --textPath={project}/error.log --scopePath={project}/libs
+{安装目录}/bin/jd-mcp-duo resolve_stacktrace --path={project}/app.jar --textPath={project}/error.log --scopePath={project}/libs
 ```

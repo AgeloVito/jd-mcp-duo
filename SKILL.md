@@ -14,17 +14,26 @@ help
 → jd-mcp-duo mcp server is alive. 33 tools available: decompile_class, ...
 ```
 
+## Installation
+
+> **Edit only `{install-dir}` — all other paths derive from it.**
+
+```
+Install dir:  {install-dir}     ← e.g. /opt/jd-mcp-duo or D:/tools/tools/java/jd-mcp-duo
+CLI entry:    {install-dir}/bin/jd-mcp-duo(.bat)
+JAR file:     {install-dir}/lib/jd-mcp-duo.jar
+Version:      v4.2.5.2 (bundled JRE 25)
+```
+
 ## Usage
 
-This Skill calls jd-mcp-duo tools via MCP protocol — **no need to worry about installation paths**. Just describe what you need:
+MCP mode: just use `/jd-mcp-duo ...` — no path needed.
 
-> /jd-mcp-duo decompile app.jar for me
-
-### CLI Mode (optional)
+### CLI Mode
 
 ```bash
-jd-mcp-duo <tool-name> [options]
-java -Xss10m -jar jd-mcp-duo.jar <tool-name> [options]
+{install-dir}/bin/jd-mcp-duo <tool-name> [options]
+java -Xss10m -jar {install-dir}/lib/jd-mcp-duo.jar <tool-name> [options]
 ```
 
 Parameter format: `--key=value` or `--key value`. Add `--json` for structured JSON output.
@@ -32,11 +41,8 @@ Parameter format: `--key=value` or `--key value`. Add `--json` for structured JS
 ### MCP Setup
 
 ```bash
-claude mcp add --transport stdio --scope user jd-mcp-duo -- /path/to/jd-mcp-duo/bin/jd-mcp-duo
-claude mcp list && claude mcp get jd-mcp-duo  # verify
+claude mcp add --transport stdio --scope user jd-mcp-duo -- {install-dir}/bin/jd-mcp-duo
 ```
-
-v4.2.5.2, bundled JRE 25, protocol 2025-11-25+.
 
 ## Tool List (33 tools)
 
@@ -202,64 +208,64 @@ In the examples below, `{project}` is the target project root and `{output}` is 
 
 ```bash
 # 1. Decompile entire WAR preserving directory structure (most common)
-jd-mcp-duo save_all_sources --path={project}/app.war --output={output}/app-src
+{install-dir}/bin/jd-mcp-duo save_all_sources --path={project}/app.war --output={output}/app-src
 
 # 2. Decompile all .class files and archives under a directory
-jd-mcp-duo decompile_directory --path={project}/WEB-INF --outputDir={output}/decompiled --recursive=true
+{install-dir}/bin/jd-mcp-duo decompile_directory --path={project}/WEB-INF --outputDir={output}/decompiled --recursive=true
 
 # 3. Decompile specific classes from a directory root
-jd-mcp-duo batch_decompile --path={project}/classes --classes=com.example.Controller,com.example.Service
+{install-dir}/bin/jd-mcp-duo batch_decompile --path={project}/classes --classes=com.example.Controller,com.example.Service
 
 # 4. Decompile specific classes across multiple JARs
-jd-mcp-duo batch_decompile_jars --path={project}/libs --classes=com.example.Dao --recursive=true --pattern="*.jar"
+{install-dir}/bin/jd-mcp-duo batch_decompile_jars --path={project}/libs --classes=com.example.Dao --recursive=true --pattern="*.jar"
 
 # 5. Decompile and output as sources JAR
-jd-mcp-duo save_all_sources --path={project}/app.jar --output={output}/sources.jar --format=sources-jar
+{install-dir}/bin/jd-mcp-duo save_all_sources --path={project}/app.jar --output={output}/sources.jar --format=sources-jar
 
 # 6. Analyze archive overview with single class preview
-jd-mcp-duo decompile_jar --path={project}/app.jar --decompile=true --className=com.example.Main --limit=20
+{install-dir}/bin/jd-mcp-duo decompile_jar --path={project}/app.jar --decompile=true --className=com.example.Main --limit=20
 ```
 
 ### Search & Analysis
 
 ```bash
 # 7. Search for sensitive strings (passwords, keys, etc.)
-jd-mcp-duo search_in_jar --path={project}/app.jar --query=password --type=string --queryMode=wildcard
+{install-dir}/bin/jd-mcp-duo search_in_jar --path={project}/app.jar --query=password --type=string --queryMode=wildcard
 
 # 8. Find all Controller classes (wildcard mode)
-jd-mcp-duo type_lookup --path={project}/app.jar --query="*Controller" --queryMode=wildcard
+{install-dir}/bin/jd-mcp-duo type_lookup --path={project}/app.jar --query="*Controller" --queryMode=wildcard
 
 # 9. Inspect class metadata (route mappings)
-jd-mcp-duo class_metadata --path={project}/app.jar --className=com.example.LoginController
+{install-dir}/bin/jd-mcp-duo class_metadata --path={project}/app.jar --className=com.example.LoginController
 
 # 10. Trace call chain (Controller → DAO)
-jd-mcp-duo call_chain --path={project}/app.jar --className=com.example.Controller --methodName=upload --direction=callees --depth=5
+{install-dir}/bin/jd-mcp-duo call_chain --path={project}/app.jar --className=com.example.Controller --methodName=upload --direction=callees --depth=5
 
 # 11. Find all callers of a method
-jd-mcp-duo find_references --path={project}/app.jar --className=com.example.Util --kind=method --methodName=execute
+{install-dir}/bin/jd-mcp-duo find_references --path={project}/app.jar --className=com.example.Util --kind=method --methodName=execute
 
 # 12. View method control flow graph (Mermaid format)
-jd-mcp-duo show_cfg --path={project}/app.jar --className=com.example.Service --methodName=process --format=mermaid
+{install-dir}/bin/jd-mcp-duo show_cfg --path={project}/app.jar --className=com.example.Service --methodName=process --format=mermaid
 ```
 
 ### Dependencies & Diagnostics
 
 ```bash
 # 13. Extract Maven dependencies for vulnerability matching
-jd-mcp-duo list_dependencies --path={project}/app.war --format=text --output={output}/deps.txt
+{install-dir}/bin/jd-mcp-duo list_dependencies --path={project}/app.war --format=text --output={output}/deps.txt
 
 # 14. Build project skeleton with inferred dependencies
-jd-mcp-duo build_skeleton --path={project}/libs --outputDir={output}/skeleton
+{install-dir}/bin/jd-mcp-duo build_skeleton --path={project}/libs --outputDir={output}/skeleton
 
 # 15. Look up original source from Maven Central
-jd-mcp-duo source_lookup --path={project}/app.jar --className=com.example.Main --saveTo={output}/Main.java
+{install-dir}/bin/jd-mcp-duo source_lookup --path={project}/app.jar --className=com.example.Main --saveTo={output}/Main.java
 
 # 16. Decompilation quality report
-jd-mcp-duo source_quality_report --path={project}/app.jar
+{install-dir}/bin/jd-mcp-duo source_quality_report --path={project}/app.jar
 
 # 17. Resolve stacktrace frames to source lines
-jd-mcp-duo resolve_stacktrace --path={project}/app.jar --text="at com.example.Service.process(Service.java:42)"
+{install-dir}/bin/jd-mcp-duo resolve_stacktrace --path={project}/app.jar --text="at com.example.Service.process(Service.java:42)"
 
 # 18. Resolve stacktrace from log file (cross-archive)
-jd-mcp-duo resolve_stacktrace --path={project}/app.jar --textPath={project}/error.log --scopePath={project}/libs
+{install-dir}/bin/jd-mcp-duo resolve_stacktrace --path={project}/app.jar --textPath={project}/error.log --scopePath={project}/libs
 ```
