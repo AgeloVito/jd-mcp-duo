@@ -100,6 +100,7 @@ public final class ProgressReporter {
                 System.err.print(tickLine + "\n");
                 tickLineActive = true;
             }
+            System.err.flush();
         }
     }
 
@@ -128,6 +129,7 @@ public final class ProgressReporter {
         if (tickLineActive) {
             int width = Math.max(lastTickLineLength, 80);
             System.err.print("\033[A\r" + " ".repeat(width) + "\r");
+            System.err.flush();
             tickLineActive = false;
         }
     }
