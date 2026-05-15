@@ -14,53 +14,29 @@ help
 → jd-mcp-duo mcp server is alive. 33 tools available: decompile_class, ...
 ```
 
-## First Use — Path Setup
-
-When using this Skill, **always ask the user** for the jd-mcp-duo installation path (once, then remember).
-
-Detect the platform from the reply and set the example command variable:
-
-| Path pattern | Platform | `{cmd}` value |
-|-------------|----------|-------------|
-| `X:/.../` drive letter | Windows | `{path}/bin/jd-mcp-duo.bat` |
-| `/.../` or `~/...` | macOS/Linux | `{path}/bin/jd-mcp-duo` |
-
-**Ask**:
-> Please provide the installation directory of jd-mcp-duo (e.g., Windows: `D:/tools/tools/java/jd-mcp-duo/`, macOS/Linux: `/opt/jd-mcp-duo/`).
-
-Replace `{cmd}` with the actual path in all examples below. In MCP mode, tool names are used directly — no path needed.
-
 ## Usage
 
-> **Version**: v4.2.5.2 (bundled JRE 25, no system Java required)
+This Skill calls jd-mcp-duo tools via MCP protocol — **no need to worry about installation paths**. Just describe what you need:
 
-### CLI Mode
+> /jd-mcp-duo decompile app.jar for me
+
+### CLI Mode (optional)
 
 ```bash
-# Basic format
-{cmd} <tool-name> [options]
-
-# Or use the JAR directly (JDK 25+, add -Xss10m for large archives)
-java -Xss10m -jar {path}/lib/jd-mcp-duo.jar <tool-name> [options]
-
-# Show help
-{cmd} --help
-
-# Show help for a specific tool
-{cmd} decompile_class --help
+jd-mcp-duo <tool-name> [options]
+java -Xss10m -jar jd-mcp-duo.jar <tool-name> [options]
 ```
 
 Parameter format: `--key=value` or `--key value`. Add `--json` for structured JSON output.
 
-### MCP Server Mode
+### MCP Setup
 
 ```bash
-claude mcp add --transport stdio --scope user jd-mcp-duo -- {path}/bin/jd-mcp-duo
+claude mcp add --transport stdio --scope user jd-mcp-duo -- /path/to/jd-mcp-duo/bin/jd-mcp-duo
+claude mcp list && claude mcp get jd-mcp-duo  # verify
 ```
 
-Verify: `claude mcp list && claude mcp get jd-mcp-duo`
-
-Protocol: supports `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
+v4.2.5.2, bundled JRE 25, protocol 2025-11-25+.
 
 ## Tool List (33 tools)
 
@@ -226,64 +202,64 @@ In the examples below, `{project}` is the target project root and `{output}` is 
 
 ```bash
 # 1. Decompile entire WAR preserving directory structure (most common)
-{cmd} save_all_sources --path={project}/app.war --output={output}/app-src
+jd-mcp-duo save_all_sources --path={project}/app.war --output={output}/app-src
 
 # 2. Decompile all .class files and archives under a directory
-{cmd} decompile_directory --path={project}/WEB-INF --outputDir={output}/decompiled --recursive=true
+jd-mcp-duo decompile_directory --path={project}/WEB-INF --outputDir={output}/decompiled --recursive=true
 
 # 3. Decompile specific classes from a directory root
-{cmd} batch_decompile --path={project}/classes --classes=com.example.Controller,com.example.Service
+jd-mcp-duo batch_decompile --path={project}/classes --classes=com.example.Controller,com.example.Service
 
 # 4. Decompile specific classes across multiple JARs
-{cmd} batch_decompile_jars --path={project}/libs --classes=com.example.Dao --recursive=true --pattern="*.jar"
+jd-mcp-duo batch_decompile_jars --path={project}/libs --classes=com.example.Dao --recursive=true --pattern="*.jar"
 
 # 5. Decompile and output as sources JAR
-{cmd} save_all_sources --path={project}/app.jar --output={output}/sources.jar --format=sources-jar
+jd-mcp-duo save_all_sources --path={project}/app.jar --output={output}/sources.jar --format=sources-jar
 
 # 6. Analyze archive overview with single class preview
-{cmd} decompile_jar --path={project}/app.jar --decompile=true --className=com.example.Main --limit=20
+jd-mcp-duo decompile_jar --path={project}/app.jar --decompile=true --className=com.example.Main --limit=20
 ```
 
 ### Search & Analysis
 
 ```bash
 # 7. Search for sensitive strings (passwords, keys, etc.)
-{cmd} search_in_jar --path={project}/app.jar --query=password --type=string --queryMode=wildcard
+jd-mcp-duo search_in_jar --path={project}/app.jar --query=password --type=string --queryMode=wildcard
 
 # 8. Find all Controller classes (wildcard mode)
-{cmd} type_lookup --path={project}/app.jar --query="*Controller" --queryMode=wildcard
+jd-mcp-duo type_lookup --path={project}/app.jar --query="*Controller" --queryMode=wildcard
 
 # 9. Inspect class metadata (route mappings)
-{cmd} class_metadata --path={project}/app.jar --className=com.example.LoginController
+jd-mcp-duo class_metadata --path={project}/app.jar --className=com.example.LoginController
 
 # 10. Trace call chain (Controller → DAO)
-{cmd} call_chain --path={project}/app.jar --className=com.example.Controller --methodName=upload --direction=callees --depth=5
+jd-mcp-duo call_chain --path={project}/app.jar --className=com.example.Controller --methodName=upload --direction=callees --depth=5
 
 # 11. Find all callers of a method
-{cmd} find_references --path={project}/app.jar --className=com.example.Util --kind=method --methodName=execute
+jd-mcp-duo find_references --path={project}/app.jar --className=com.example.Util --kind=method --methodName=execute
 
 # 12. View method control flow graph (Mermaid format)
-{cmd} show_cfg --path={project}/app.jar --className=com.example.Service --methodName=process --format=mermaid
+jd-mcp-duo show_cfg --path={project}/app.jar --className=com.example.Service --methodName=process --format=mermaid
 ```
 
 ### Dependencies & Diagnostics
 
 ```bash
 # 13. Extract Maven dependencies for vulnerability matching
-{cmd} list_dependencies --path={project}/app.war --format=text --output={output}/deps.txt
+jd-mcp-duo list_dependencies --path={project}/app.war --format=text --output={output}/deps.txt
 
 # 14. Build project skeleton with inferred dependencies
-{cmd} build_skeleton --path={project}/libs --outputDir={output}/skeleton
+jd-mcp-duo build_skeleton --path={project}/libs --outputDir={output}/skeleton
 
 # 15. Look up original source from Maven Central
-{cmd} source_lookup --path={project}/app.jar --className=com.example.Main --saveTo={output}/Main.java
+jd-mcp-duo source_lookup --path={project}/app.jar --className=com.example.Main --saveTo={output}/Main.java
 
 # 16. Decompilation quality report
-{cmd} source_quality_report --path={project}/app.jar
+jd-mcp-duo source_quality_report --path={project}/app.jar
 
 # 17. Resolve stacktrace frames to source lines
-{cmd} resolve_stacktrace --path={project}/app.jar --text="at com.example.Service.process(Service.java:42)"
+jd-mcp-duo resolve_stacktrace --path={project}/app.jar --text="at com.example.Service.process(Service.java:42)"
 
 # 18. Resolve stacktrace from log file (cross-archive)
-{cmd} resolve_stacktrace --path={project}/app.jar --textPath={project}/error.log --scopePath={project}/libs
+jd-mcp-duo resolve_stacktrace --path={project}/app.jar --textPath={project}/error.log --scopePath={project}/libs
 ```
