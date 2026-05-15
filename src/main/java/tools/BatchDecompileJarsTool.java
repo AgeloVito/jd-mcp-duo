@@ -51,6 +51,7 @@ public class BatchDecompileJarsTool implements MCPTool {
         SchemaSupport.addInteger(properties, "classLimit", "Maximum classes per archive", 0);
         SchemaSupport.addInteger(properties, "jarLimit", "Maximum archives processed", 0);
         SchemaSupport.addBoolean(properties, "summaryOnly", "Only return summary text", false);
+        SchemaSupport.addBoolean(properties, "verbose", "Include per-archive details in structured result; set false to keep response small", false);
         SchemaSupport.addString(properties, "outputDir", "Optional output directory");
         JsonObject preferences = new JsonObject();
         preferences.addProperty("type", "object");
@@ -80,6 +81,7 @@ public class BatchDecompileJarsTool implements MCPTool {
         int classLimit = JsonUtils.getInt(arguments, "classLimit", 0);
         int jarLimit = JsonUtils.getInt(arguments, "jarLimit", 0);
         boolean summaryOnly = JsonUtils.getBoolean(arguments, "summaryOnly", false);
+        boolean verbose = JsonUtils.getBoolean(arguments, "verbose", false);
         String outputDir = JsonUtils.getString(arguments, "outputDir", null);
         String renderLineNumbers = LineNumberRenderer.normalize(JsonUtils.getString(arguments, "renderLineNumbers", null));
         boolean writeSidecarMetadata = JsonUtils.getBoolean(arguments, "writeSidecarMetadata", false);
@@ -160,7 +162,9 @@ public class BatchDecompileJarsTool implements MCPTool {
 
         JsonObject structured = new JsonObject();
         structured.addProperty("path", directory.toString());
-        structured.add("archives", archives);
+        if (verbose) {
+            structured.add("archives", archives);
+        }
         return ToolResults.structured(text.toString().trim(), structured);
     }
 

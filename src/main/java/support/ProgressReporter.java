@@ -85,6 +85,10 @@ public final class ProgressReporter {
                             + currentFile.substring(tailStart);
                 }
             }
+            // Safety net: never exceed maxWidth
+            if (tickLine.length() > maxWidth) {
+                tickLine = tickLine.substring(0, maxWidth - 1) + '…';
+            }
             // Pad with spaces if shorter than previous tick to clear residual chars
             if (tickLineActive && tickLine.length() < lastTickLineLength) {
                 tickLine = tickLine + " ".repeat(lastTickLineLength - tickLine.length());

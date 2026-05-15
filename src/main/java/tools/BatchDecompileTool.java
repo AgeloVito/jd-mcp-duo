@@ -46,6 +46,7 @@ public class BatchDecompileTool implements MCPTool {
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
         SchemaSupport.addInteger(properties, "limit", "Maximum classes to decompile", 0);
         SchemaSupport.addBoolean(properties, "summaryOnly", "Only return summary text", false);
+        SchemaSupport.addBoolean(properties, "verbose", "Include per-file details in structured result; set false to keep response small", false);
         SchemaSupport.addString(properties, "outputDir", "Optional output directory");
         JsonObject preferences = new JsonObject();
         preferences.addProperty("type", "object");
@@ -73,6 +74,7 @@ public class BatchDecompileTool implements MCPTool {
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
         int limit = JsonUtils.getInt(arguments, "limit", 0);
         boolean summaryOnly = JsonUtils.getBoolean(arguments, "summaryOnly", false);
+        boolean verbose = JsonUtils.getBoolean(arguments, "verbose", false);
         String outputDir = JsonUtils.getString(arguments, "outputDir", null);
         String renderLineNumbers = LineNumberRenderer.normalize(JsonUtils.getString(arguments, "renderLineNumbers", null));
         boolean writeSidecarMetadata = JsonUtils.getBoolean(arguments, "writeSidecarMetadata", false);
@@ -133,7 +135,9 @@ public class BatchDecompileTool implements MCPTool {
 
             JsonObject structured = new JsonObject();
             structured.addProperty("path", path.toString());
-            structured.add("results", results);
+            if (verbose) {
+                structured.add("results", results);
+            }
             return ToolResults.structured(text.toString().trim(), structured);
         }
     }

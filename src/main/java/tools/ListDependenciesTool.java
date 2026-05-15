@@ -28,6 +28,7 @@ public class ListDependenciesTool implements MCPTool {
         SchemaSupport.addString(properties, "path", "Path to a supported archive");
         SchemaSupport.addString(properties, "format", "Output format: json (default) or text (GAV per line)");
         SchemaSupport.addString(properties, "output", "Optional file path to write the dependency list");
+        SchemaSupport.addInteger(properties, "limit", "Maximum dependencies to return", 500);
         SchemaSupport.require(schema, "path");
         return schema;
     }
@@ -40,6 +41,7 @@ public class ListDependenciesTool implements MCPTool {
         }
         String format = JsonUtils.getString(arguments, "format", "json");
         Path outputFile = JsonUtils.getPath(arguments, "output");
+        int limit = JsonUtils.getInt(arguments, "limit", 500);
 
         List<Dep> deps = new ArrayList<>();
         try (JarFile jar = new JarFile(path.toFile())) {
@@ -63,6 +65,11 @@ public class ListDependenciesTool implements MCPTool {
                         } catch (Exception ignored) {
                         }
                     });
+        }
+
+        int totalDeps = deps.size();
+        if (limit > 0 && deps.size() > limit) {
+            deps = deps.subList(0, limit);
         }
 
         if (outputFile != null) {
@@ -96,7 +103,8 @@ public class ListDependenciesTool implements MCPTool {
 
         JsonObject structured = new JsonObject();
         structured.addProperty("path", path.toString());
-        structured.addProperty("count", deps.size());
+        structured.addProperty("totalCount", totalDeps);
+        structured.addProperty("showing", deps.size());
         structured.add("dependencies", jsonDeps);
 
         String text = deps.size() + " embedded dependencies found in " + path;

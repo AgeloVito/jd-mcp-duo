@@ -48,6 +48,7 @@ public class DecompileDirectoryTool implements MCPTool {
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
         SchemaSupport.addBoolean(properties, "summaryOnly", "Only return summary text without listing every written file; files are still written", false);
         SchemaSupport.addInteger(properties, "fileLimit", "Maximum input files processed, 0 for unlimited", 0);
+        SchemaSupport.addBoolean(properties, "verbose", "Include per-file details in result; set false to keep response small", false);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "outputDir");
         return schema;
@@ -66,6 +67,7 @@ public class DecompileDirectoryTool implements MCPTool {
         boolean recursive = JsonUtils.getBoolean(arguments, "recursive", true);
         boolean summaryOnly = JsonUtils.getBoolean(arguments, "summaryOnly", false);
         int fileLimit = JsonUtils.getInt(arguments, "fileLimit", 0);
+        boolean verbose = JsonUtils.getBoolean(arguments, "verbose", false);
         if (!Files.isDirectory(root)) {
             throw new IllegalArgumentException("Path must be a directory: " + root);
         }
@@ -144,7 +146,8 @@ public class DecompileDirectoryTool implements MCPTool {
                             int successCount = 0;
                             int failureCount = 0;
                             Path archiveOutputRoot = outputDir.resolve(relativeInput.toString());
-                            for (ClassLocation location : container.listClasses(false)) {
+                            var archiveClasses = container.listClasses(false);
+                            for (ClassLocation location : archiveClasses) {
                                 JsonObject classResult = new JsonObject();
                                 classResult.addProperty("className", location.displayName());
                                 classResult.addProperty("internalName", location.internalName());
@@ -211,7 +214,7 @@ public class DecompileDirectoryTool implements MCPTool {
 
                             item.addProperty("kind", "archive");
                             item.addProperty("archivePath", relativeInput.toString());
-                            item.addProperty("classCount", container.listClasses(false).size());
+                            item.addProperty("classCount", archiveClasses.size());
                             item.addProperty("successCount", successCount);
                             item.addProperty("failureCount", failureCount);
                             item.addProperty("resourceCount", archiveResourceCount);
@@ -263,8 +266,10 @@ public class DecompileDirectoryTool implements MCPTool {
         structured.addProperty("resourceCount", resourceCount);
         structured.addProperty("resourceFailures", resourceFailures);
         structured.addProperty("summaryOnly", summaryOnly);
-        structured.add("processed", processed);
-        structured.add("failures", failures);
+        if (verbose) {
+            structured.add("processed", processed);
+            structured.add("failures", failures);
+        }
 
         StringBuilder text = new StringBuilder();
         text.append("Decompile directory complete\n");

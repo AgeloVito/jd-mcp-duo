@@ -33,6 +33,7 @@ public class ListClassesTool implements MCPTool {
         SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
         SchemaSupport.addBoolean(properties, "includeInner", "Include inner classes", false);
         SchemaSupport.addBoolean(properties, "detailed", "Include package statistics", false);
+        SchemaSupport.addInteger(properties, "limit", "Maximum classes to return", 200);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -53,6 +54,7 @@ public class ListClassesTool implements MCPTool {
                 : null;
         boolean includeInner = JsonUtils.getBoolean(arguments, "includeInner", false);
         boolean detailed = JsonUtils.getBoolean(arguments, "detailed", false);
+        int limit = JsonUtils.getInt(arguments, "limit", 200);
 
         try (InputContainer container = InputContainers.open(path, releaseVersion)) {
             List<ClassLocation> classes = container.listClasses(true).stream()
@@ -60,12 +62,17 @@ public class ListClassesTool implements MCPTool {
                     .filter(location -> packageFilter == null || location.displayName().startsWith(packageFilter))
                     .toList();
 
+            int totalCount = classes.size();
+            if (limit > 0 && classes.size() > limit) {
+                classes = classes.subList(0, limit);
+            }
+
             Map<String, Integer> packageCounts = new TreeMap<>();
             JsonArray classArray = new JsonArray();
             StringBuilder text = new StringBuilder();
             text.append("Classes in ").append(path).append('\n');
             text.append("Kind: ").append(container.kind()).append('\n');
-            text.append("Total: ").append(classes.size()).append("\n\n");
+            text.append("Total: ").append(totalCount).append("\n\n");
 
             for (ClassLocation location : classes) {
                 String packageName = location.displayName().contains(".")
@@ -92,7 +99,11 @@ public class ListClassesTool implements MCPTool {
             JsonObject structured = new JsonObject();
             structured.addProperty("path", path.toString());
             structured.addProperty("kind", container.kind());
-            structured.addProperty("totalClasses", classes.size());
+            structured.addProperty("totalClasses", totalCount);
+            structured.addProperty("showing", classes.size());
+            if (totalCount > classes.size()) {
+                text.append("... ").append(totalCount - classes.size()).append(" more classes not shown\n");
+            }
             structured.add("classes", classArray);
             if (detailed) {
                 JsonObject packages = new JsonObject();

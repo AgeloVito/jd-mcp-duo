@@ -39,7 +39,7 @@ public class SourceQualityReportTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "lineNumbers", "Include line-number metadata", false);
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
-        SchemaSupport.addInteger(properties, "classLimit", "Maximum classes to analyze", 0);
+        SchemaSupport.addInteger(properties, "classLimit", "Maximum classes to analyze", 100);
         SchemaSupport.require(schema, "path");
         return schema;
     }
@@ -47,7 +47,7 @@ public class SourceQualityReportTool implements MCPTool {
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
         Path path = JsonUtils.getRequiredPath(arguments, "path");
-        int classLimit = JsonUtils.getInt(arguments, "classLimit", 0);
+        int classLimit = JsonUtils.getInt(arguments, "classLimit", 100);
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
 
         try (InputContainer container = InputContainers.open(path, options.releaseVersion());

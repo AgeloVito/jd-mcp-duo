@@ -32,6 +32,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
         SchemaSupport.addString(properties, "path", "Directory path");
         SchemaSupport.addBoolean(properties, "recursive", "Recursively scan subdirectories", false);
         SchemaSupport.addString(properties, "pattern", "Optional glob pattern");
+        SchemaSupport.addInteger(properties, "limit", "Maximum archives to return", 200);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -44,6 +45,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
         Path directory = JsonUtils.getRequiredPath(arguments, "path");
         boolean recursive = JsonUtils.getBoolean(arguments, "recursive", false);
         String pattern = JsonUtils.getString(arguments, "pattern", "*");
+        int limit = JsonUtils.getInt(arguments, "limit", 200);
         if (!Files.isDirectory(directory)) {
             throw new IllegalArgumentException("Path must be a directory: " + directory);
         }
@@ -58,6 +60,10 @@ public class AnalyzeDirectoryTool implements MCPTool {
                     .filter(InputContainers::isArchivePath)
                     .sorted()
                     .toList();
+
+            if (limit > 0 && paths.size() > limit) {
+                paths = paths.subList(0, limit);
+            }
 
             long totalClasses = 0;
             long totalSize = 0;
