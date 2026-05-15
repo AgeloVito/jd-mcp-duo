@@ -56,6 +56,7 @@ CLI 自带 JRE 25，**不要用 `java -jar`**。MCP 模式直接调工具名。
 | **CLI 输出** | stdout=JSON（`text`/`structuredData`/`isError`），stderr=进度+日志 |
 | **超时** | 单次反编译传 `attemptTimeoutMillis=30000` |
 | **进度转发** | stderr 中 `[jd-mcp-duo]` 前缀行必须转发给用户 |
+| **描述符** | 必须用单引号字面量：`--descriptor='()V'`、`--descriptor='<init>'`、`--descriptor='<clinit>'`。不可用尖括号括起（如 `--descriptor=(...)V`） |
 
 > **性能差异**：批量工具共享单个 JVM，效率高数倍；`decompile_class` 每次启动独立 JVM。大量文件先收窄范围再用批量方式，禁止对项目根做无界导出。
 
@@ -305,9 +306,19 @@ compare_class(leftPath=jar, className=类, leftEngine=cfr, rightEngine=vineflowe
 
 ---
 
-## 提示词配置
+## 结果呈现
 
-提示词中不可出现 `--descriptor=(...)V`、`--descriptor=<init>`、`--descriptor=<clinit>` 等尖括号括起的描述符。必须使用单引号字面量，例如 `--descriptor='()V'`、`--descriptor='<init>'`、`--descriptor='<clinit>'`。
+不直接贴原始 JSON 输出。根据用户意图做提炼：
+
+| 工具类型 | 呈现方式 |
+|----------|---------|
+| 反编译类 | 展示源码，标注引擎和行号 |
+| 搜索 | 列出匹配项（类名/方法签名/文件路径），高亮匹配部分 |
+| 调用链 | 以缩进树或流程图展示路径，标注关键节点 |
+| 批量任务 | 先报计数，再按需展示详情 |
+| 列表/元数据 | 表格化展示，控制行数 |
+
+反编译结果标注来源：`来源: 反编译（jd-mcp-duo auto）`
 
 ## 进度输出解读
 
@@ -330,7 +341,6 @@ compare_class(leftPath=jar, className=类, leftEngine=cfr, rightEngine=vineflowe
 - **禁止**输出到工具安装目录
 - 输出默认 `./jd-mcp-duo-output/`，已存在直接覆盖
 - 索引默认 `./.jd-mcp-duo/index.sqlite`，放项目本地
-- 审计报告中标注反编译来源：`来源: 反编译（jd-mcp-duo auto）`
 
 ## 常见问题
 
