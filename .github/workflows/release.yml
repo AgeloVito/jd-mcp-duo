@@ -71,22 +71,13 @@ jobs:
           chmod +x "$DIR/bin/jd-mcp-duo"
           tar -cJf "jd-mcp-duo-linux-x64.tar.xz" "$DIR"
 
-      # --- macOS Intel: pre-built JRE from jre-builder ---
+      # --- macOS Intel: Eclipse Temurin JRE (full modules, includes java.sql) ---
       - name: Download and package macOS Intel
         run: |
           DIR="jd-mcp-duo"
           mkdir -p "$DIR/bin" "$DIR/lib" "$DIR/runtime"
-          curl -sSfL "https://github.com/nbauma109/jre-builder/releases/download/5.1.2/jre-5.1.2-25.0.2-macos-x64.zip" -o jre.zip
-          unzip -qo jre.zip -d "$DIR/runtime/"
-          # If the zip has a single top-level directory, flatten it
-          CONTENTS=$(ls "$DIR/runtime")
-          if [ $(echo "$CONTENTS" | wc -l) -eq 1 ] && [ -d "$DIR/runtime/$CONTENTS" ]; then
-            TMP=$(mktemp -d)
-            mv "$DIR/runtime/$CONTENTS" "$TMP/jre"
-            rm -rf "$DIR/runtime"
-            mv "$TMP/jre" "$DIR/runtime"
-          fi
-          # unzip loses execute permissions; restore them on JRE binaries
+          curl -sSfL "https://api.adoptium.net/v3/binary/latest/25/ga/mac/x64/jre/hotspot/normal/eclipse" -o jre.tar.gz
+          tar xzf jre.tar.gz --strip-components=1 -C "$DIR/runtime/"
           chmod +x "$DIR/runtime/bin/"* 2>/dev/null || true
           chmod +x "$DIR/runtime/lib/jexec" 2>/dev/null || true
           cp dist/lib/jd-mcp-duo.jar "$DIR/lib/"
