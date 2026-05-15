@@ -72,9 +72,9 @@ public class CliMode {
 
         // Execute the tool.
         MCPTool tool = tools.get(toolName);
+        ProgressReporter reporter = new ProgressReporter(null, toolName);
         try {
             logger.info("Running tool: {}", toolName);
-            ProgressReporter reporter = new ProgressReporter(null, toolName);
             reporter.report(0, 0);
             ToolResult result = StdoutGuard.callSilenced(() -> tool.execute(arguments, reporter));
             reporter.done();
@@ -92,7 +92,10 @@ public class CliMode {
             }
             return result.isError() ? 1 : 0;
         } catch (Exception e) {
+            reporter.done();
             err.println("Execution failed: " + e.getMessage());
+            err.println("Usage: java -Xss10m -jar " + jarName() + " " + MCPTool.buildUsageExample(toolName, tool.getInputSchema()));
+            err.println("See: java -Xss10m -jar " + jarName() + " " + toolName + " --help");
             logger.error("Tool execution failed", e);
             return 1;
         }
@@ -161,44 +164,44 @@ public class CliMode {
         out.println();
         out.println("Usage:");
         out.println("  1. MCP server mode:");
-        out.println("     java -jar " + jarName() + "");
+        out.println("     java -Xss10m -jar " + jarName() + "");
         out.println();
         out.println("  2. CLI mode:");
-        out.println("     java -jar " + jarName() + " <tool-name> [options] [--json]");
+        out.println("     java -Xss10m -jar " + jarName() + " <tool-name> [options] [--json]");
         out.println();
         out.println("Examples:");
         out.println("  # Decompile a single class file");
-        out.println("  java -jar " + jarName() + " decompile_class --path=/path/to/MyClass.class");
+        out.println("  java -Xss10m -jar " + jarName() + " decompile_class --path=/path/to/MyClass.class");
         out.println();
         out.println("  # Decompile a class from a JAR");
-        out.println("  java -jar " + jarName() + " decompile_class --path=/path/to/app.jar --className=com.example.Main");
+        out.println("  java -Xss10m -jar " + jarName() + " decompile_class --path=/path/to/app.jar --className=com.example.Main");
         out.println();
         out.println("  # Decompile all classes from a JAR to a directory using the default auto engine");
-        out.println("  java -jar " + jarName() + " save_all_sources --path=/path/to/app.jar --output=/path/to/out");
+        out.println("  java -Xss10m -jar " + jarName() + " save_all_sources --path=/path/to/app.jar --output=/path/to/out");
         out.println();
         out.println("  # Decompile all classes from a JAR to a directory using a specific engine");
-        out.println("  java -jar " + jarName() + " save_all_sources --path=/path/to/app.jar --output=/path/to/out --engine=jadx");
+        out.println("  java -Xss10m -jar " + jarName() + " save_all_sources --path=/path/to/app.jar --output=/path/to/out --engine=jadx");
         out.println();
         out.println("  # Decompile every supported file under a directory to another directory using the default auto engine");
-        out.println("  java -jar " + jarName() + " decompile_directory --path=/path/to/input --outputDir=/path/to/out");
+        out.println("  java -Xss10m -jar " + jarName() + " decompile_directory --path=/path/to/input --outputDir=/path/to/out");
         out.println();
         out.println("  # Decompile every supported file under a directory to another directory using a specific engine");
-        out.println("  java -jar " + jarName() + " decompile_directory --path=/path/to/input --outputDir=/path/to/out --engine=jadx");
+        out.println("  java -Xss10m -jar " + jarName() + " decompile_directory --path=/path/to/input --outputDir=/path/to/out --engine=jadx");
         out.println();
         out.println("  # List supported decompiler engines");
-        out.println("  java -jar " + jarName() + " list_engines");
+        out.println("  java -Xss10m -jar " + jarName() + " list_engines");
         out.println();
         out.println("  # Decompile with JD-Core v1 plus JD-Core v0 method patching only");
-        out.println("  java -jar " + jarName() + " decompile_class --path=/path/to/app.jar --className=com.example.Main --engine=jd-core-duo");
+        out.println("  java -Xss10m -jar " + jarName() + " decompile_class --path=/path/to/app.jar --className=com.example.Main --engine=jd-core-duo");
         out.println();
         out.println("  # Compare JD-Core v0 and JD-Core v1 output for one class");
-        out.println("  java -jar " + jarName() + " compare_jd_core --path=/path/to/app.jar --className=com.example.Main");
+        out.println("  java -Xss10m -jar " + jarName() + " compare_jd_core --path=/path/to/app.jar --className=com.example.Main");
         out.println();
         out.println("  # List all classes in a JAR");
-        out.println("  java -jar " + jarName() + " list_classes --path=/path/to/app.jar");
+        out.println("  java -Xss10m -jar " + jarName() + " list_classes --path=/path/to/app.jar");
         out.println();
         out.println("  # Search");
-        out.println("  java -jar " + jarName() + " search_in_jar --path=/path/to/app.jar --query=MyClass");
+        out.println("  java -Xss10m -jar " + jarName() + " search_in_jar --path=/path/to/app.jar --query=MyClass");
         out.println();
         printAvailableTools(out);
     }
@@ -232,7 +235,7 @@ public class CliMode {
             out.println();
         }
 
-        out.println("Use 'java -jar " + jarName() + " <tool-name> --help' to inspect a tool's full schema.");
+        out.println("Use 'java -Xss10m -jar " + jarName() + " <tool-name> --help' to inspect a tool's full schema.");
     }
 
     private static String jarName() {

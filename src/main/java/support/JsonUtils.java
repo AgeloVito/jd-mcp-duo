@@ -112,9 +112,12 @@ public final class JsonUtils {
 
     public static Path getRequiredPath(JsonObject object, String key) {
         String raw = getString(object, key, "");
+        if (raw.isBlank()) {
+            throw new IllegalArgumentException("Missing required parameter: " + key);
+        }
         Path path = PathSupport.validatePath(raw);
         if (path == null) {
-            throw new IllegalArgumentException("Invalid or unsafe path: " + raw);
+            throw new IllegalArgumentException("Invalid or unsafe path (" + key + "): " + raw);
         }
         return path;
     }

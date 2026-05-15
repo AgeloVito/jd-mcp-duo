@@ -49,6 +49,7 @@ public class SaveAllSourcesTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "writeSidecarMetadata", "Write .meta.json sidecars next to exported sources", false);
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
+        SchemaSupport.addBoolean(properties, "verbose", "Include per-file details in result; set false to keep response small", false);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "output");
         return schema;
@@ -68,6 +69,7 @@ public class SaveAllSourcesTool implements MCPTool {
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
         String renderLineNumbers = LineNumberRenderer.normalize(JsonUtils.getString(arguments, "renderLineNumbers", null));
         boolean writeSidecarMetadata = JsonUtils.getBoolean(arguments, "writeSidecarMetadata", false);
+        boolean verbose = JsonUtils.getBoolean(arguments, "verbose", false);
 
         JsonArray saved = new JsonArray();
         JsonArray failures = new JsonArray();
@@ -99,7 +101,7 @@ public class SaveAllSourcesTool implements MCPTool {
                         } catch (Exception e) {
                             failures.add(failure(location, e));
                         }
-                        reporter.report(++idx, total);
+                        reporter.tick(++idx, total, location.displayName());
                     }
                     for (ResourceEntry resource : container.listResources()) {
                         try {
@@ -145,7 +147,7 @@ public class SaveAllSourcesTool implements MCPTool {
                     } catch (Exception e) {
                         failures.add(failure(location, e));
                     }
-                    reporter.report(++idx, total);
+                    reporter.tick(++idx, total, location.displayName());
                 }
             }
 
@@ -185,9 +187,11 @@ public class SaveAllSourcesTool implements MCPTool {
         structured.addProperty("savedCount", saved.size());
         structured.addProperty("failureCount", failures.size());
         structured.addProperty("resourceCount", resourcesCopied.size());
-        structured.add("saved", saved);
-        structured.add("failures", failures);
-        structured.add("resourcesCopied", resourcesCopied);
+        if (verbose) {
+            structured.add("saved", saved);
+            structured.add("failures", failures);
+            structured.add("resourcesCopied", resourcesCopied);
+        }
         String text = "Saved " + saved.size() + " decompiled sources";
         if (resourcesCopied.size() > 0) {
             text += " and " + resourcesCopied.size() + " resources";

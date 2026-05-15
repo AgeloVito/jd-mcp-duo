@@ -128,7 +128,7 @@ public class BatchDecompileTool implements MCPTool {
                     text.append("❌ ").append(location.displayName()).append(" - ").append(e.getMessage()).append('\n');
                 }
                 results.add(item);
-                reporter.report(++idx, total);
+                reporter.tick(++idx, total, location.displayName());
             }
 
             JsonObject structured = new JsonObject();

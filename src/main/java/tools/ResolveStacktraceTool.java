@@ -46,6 +46,7 @@ public class ResolveStacktraceTool implements MCPTool {
         SchemaSupport.addString(properties, "textPath", "Optional path to a .log or text file");
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
+        SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
         SchemaSupport.addString(properties, "engine", "Decompiler engine for line mapping");
         SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
         SchemaSupport.addInteger(properties, "maxFrames", "Maximum number of frame entries to resolve", 200);
@@ -64,10 +65,12 @@ public class ResolveStacktraceTool implements MCPTool {
         Path scopePath = arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
                 ? JsonUtils.getPath(arguments, "scopePath")
                 : null;
+        Path indexPath = JsonUtils.getPath(arguments, "indexPath");
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 primaryPath,
                 scopePath,
-                JsonUtils.getBoolean(arguments, "scopeRecursive", false)
+                JsonUtils.getBoolean(arguments, "scopeRecursive", false),
+                indexPath
         );
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
         Map<Path, InputContainer> containers = new HashMap<>();

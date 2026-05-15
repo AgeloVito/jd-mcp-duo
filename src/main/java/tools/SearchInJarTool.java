@@ -36,6 +36,7 @@ public class SearchInJarTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "caseSensitive", "Enable case-sensitive matching", false);
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
+        SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
         SchemaSupport.addBoolean(properties, "distinct", "Deduplicate string results by text", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum number of results", 50);
         SchemaSupport.require(schema, "path");
@@ -58,11 +59,13 @@ public class SearchInJarTool implements MCPTool {
                 ? JsonUtils.getPath(arguments, "scopePath")
                 : null;
         boolean scopeRecursive = JsonUtils.getBoolean(arguments, "scopeRecursive", false);
+        Path indexPath = JsonUtils.getPath(arguments, "indexPath");
 
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 primaryPath,
                 scopePath,
-                scopeRecursive
+                scopeRecursive,
+                indexPath
         );
         JsonArray results = new JsonArray();
         StringBuilder text = new StringBuilder();

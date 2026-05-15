@@ -63,6 +63,7 @@ class BatchAndSaveSourcesRegressionTest {
         arguments.addProperty("path", jarPath.toString());
         arguments.addProperty("output", tempDir.resolve("out").toString());
         arguments.addProperty("format", "directory");
+        arguments.addProperty("verbose", true);
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         PrintStream originalErr = System.err;

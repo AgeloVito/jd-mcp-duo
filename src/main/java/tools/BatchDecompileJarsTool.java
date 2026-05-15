@@ -142,7 +142,7 @@ public class BatchDecompileJarsTool implements MCPTool {
                             item.addProperty("error", e.getMessage());
                         }
                         classResults.add(item);
-                        reporter.report(++idx, total);
+                        reporter.tick(++idx, total, location.displayName());
                     }
                     archiveJson.addProperty("classCount", classes.size());
                 } catch (Exception e) {

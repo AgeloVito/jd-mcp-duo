@@ -25,8 +25,12 @@ public final class PersistentScopeIndex {
     }
 
     public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive) throws Exception {
+        return open(primaryPath, scopePath, recursive, null);
+    }
+
+    public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive, Path indexPath) throws Exception {
         List<Path> inputs = ScopeSupport.collectScopeInputs(primaryPath, scopePath, recursive);
-        Path databasePath = defaultDatabasePath();
+        Path databasePath = indexPath != null ? indexPath.toAbsolutePath().normalize() : defaultDatabasePath();
         Files.createDirectories(databasePath.getParent());
         initializeDatabase(databasePath);
         IndexingResult result = ensureIndexed(databasePath, inputs);

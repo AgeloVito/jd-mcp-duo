@@ -1,6 +1,7 @@
 package tools;
 
 import index.ScopedClass;
+import java.nio.file.Path;
 import model.MCPTool;
 import model.ToolResult;
 import sqlite.PersistentScopeIndex;
@@ -28,6 +29,7 @@ public class TypeLookupTool implements MCPTool {
         SchemaSupport.addString(properties, "queryMode", "plain, wildcard, or regex");
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
+        SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
         SchemaSupport.addBoolean(properties, "caseSensitive", "Enable case-sensitive matching", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum results", 50);
         SchemaSupport.require(schema, "path");
@@ -44,12 +46,14 @@ public class TypeLookupTool implements MCPTool {
         long startedAt = System.nanoTime();
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
 
+        Path indexPath = JsonUtils.getPath(arguments, "indexPath");
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
                 arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
                         ? JsonUtils.getPath(arguments, "scopePath")
                         : null,
-                JsonUtils.getBoolean(arguments, "scopeRecursive", false)
+                JsonUtils.getBoolean(arguments, "scopeRecursive", false),
+                indexPath
         );
         JsonArray matches = new JsonArray();
         StringBuilder text = new StringBuilder();

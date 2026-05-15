@@ -100,6 +100,9 @@ public class MCPServer {
         tools.put("call_chain", new CallChainTool());
         tools.put("show_cfg", new ShowCfgTool());
 
+        // Meta tools (registered last so they can reference all other tools)
+        tools.put("help", new HelpTool(tools));
+
         logger.info("Registered {} tools", tools.size());
     }
 
@@ -372,8 +375,10 @@ public class MCPServer {
             JsonObject resultObj = new JsonObject();
             JsonArray content = new JsonArray();
             JsonObject textContent = new JsonObject();
+            String usage = MCPTool.buildUsageExample(toolName, tool.getInputSchema());
             textContent.addProperty("type", "text");
-            textContent.addProperty("text", "Tool execution failed: " + e.getMessage());
+            textContent.addProperty("text", "Tool execution failed: " + e.getMessage()
+                    + "\nUsage: " + usage);
             content.add(textContent);
             resultObj.add("content", content);
             resultObj.addProperty("isError", true);

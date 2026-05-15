@@ -186,6 +186,7 @@ public class DecompileDirectoryTool implements MCPTool {
                                     failures.add(failure);
                                 }
                                 classResults.add(classResult);
+                                reporter.tick(idx, total, relativeInput + " > " + location.displayName());
                             }
 
                             int archiveResourceCount = 0;
@@ -244,7 +245,7 @@ public class DecompileDirectoryTool implements MCPTool {
                     item.addProperty("successCount", 0);
                     failures.add(item);
                 }
-                reporter.report(++idx, total);
+                reporter.tick(++idx, total, relativeInput.toString());
             }
         }
 
