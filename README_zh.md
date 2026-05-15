@@ -48,7 +48,7 @@ jd-mcp-duo 将反编译、静态调用链、跨归档全文搜索和资源提取
 jd-mcp-duo（本项目）
 ├── MCP 协议层 — JSON-RPC 2.0 over stdio
 ├── CLI 模式 — 无需 MCP 的命令行调用
-├── 31 个工具 — 反编译、搜索、分析、对比
+├── 33 个工具 — 反编译、搜索、分析、对比
 ├── SQLite 索引 — 跨归档调用图和类型层次
 └── 归档抽象 — JAR/WAR/DEX/APK/目录输入
 ```
@@ -394,12 +394,26 @@ claude mcp get jd-mcp-duo
 ./bin/jd-mcp-duo remove_unnecessary_casts --path=./src/com/example/Main.java
 ```
 
+
+### 元工具
+
+**`help`** — MCP 存活检测。列出所有可用工具及描述。MCP 模式下可通过此工具确认服务是否正常运行。
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| *(无)* | — | 无参数；直接返回工具列表 |
+
+```bash
+./bin/jd-mcp-duo help
+```
 ### 公共参数
 
 | 参数 | 适用工具 | 说明 |
 |---|---|---|
 | `engine` | 反编译类工具 | 引擎名：`auto`、`jd-core-v1`、`jd-core-v0`、`jd-core-duo`、`cfr`、`procyon`、`fernflower`、`vineflower`、`jadx` |
 | `profile` | 反编译类工具 | `fast`、`accurate` 或 `debuggable` — 自动选择合适的引擎和选项 |
+| `indexPath` | 搜索/分析类工具 | 自定义 SQLite 索引路径（默认：`~/.jd-mcp-duo/index.sqlite`） |
+| `verbose` | 批量反编译工具 | 结构化结果中包含每个文件的详细信息（默认：false） |
 | `scopePath` | 搜索/分析类工具 | 用于多归档 scope 索引的目录或归档 |
 | `releaseVersion` | 反编译类工具 | 目标多版本 class 版本号（默认：当前 Java 版本） |
 | `descriptor` | 方法级工具 | JVM 方法描述符，用于重载消歧，如 `(Ljava/lang/String;)V` |
@@ -439,10 +453,24 @@ claude mcp get jd-mcp-duo
 
 ## 配置
 
-可通过 `JAVA_TOOL_OPTIONS` 环境变量覆盖 SQLite 索引路径，或直接编辑启动脚本：
+SQLite 索引默认路径为 `~/.jd-mcp-duo/index.sqlite`。可通过 `--indexPath` 参数按工具指定：
+
+```bash
+./bin/jd-mcp-duo search_in_jar --path=./lib --query=MyClass --indexPath=/d/projects/my-index.sqlite
+```
+
+或全局通过 `JAVA_TOOL_OPTIONS` 环境变量：
 
 ```bash
 JAVA_TOOL_OPTIONS="-Djd.mcp.sqlite.index=/path/to/custom/index.sqlite" ./bin/jd-mcp-duo <工具名> [参数]
+```
+
+### 栈大小
+
+处理大型归档时建议增大线程栈：
+
+```bash
+java -Xss10m -jar jd-mcp-duo.jar <工具名> [参数]
 ```
 
 ## 致谢

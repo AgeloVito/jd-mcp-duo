@@ -34,6 +34,7 @@ class BatchAndSaveSourcesRegressionTest {
         JsonObject arguments = new JsonObject();
         arguments.addProperty("path", inputDir.toString());
         arguments.addProperty("outputDir", tempDir.resolve("out").toString());
+        arguments.addProperty("verbose", true);
 
         ToolResult result = tool.execute(arguments);
 

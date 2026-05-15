@@ -48,7 +48,7 @@ Examples of security analysis scenarios this MCP service can support when connec
 jd-mcp-duo (this project)
 ├── MCP protocol layer — JSON-RPC 2.0 over stdio
 ├── CLI mode — command-line access without MCP
-├── 31 tools — decompile, search, analyze, compare
+├── 33 tools — decompile, search, analyze, compare
 ├── SQLite index — cross-archive call graph and type hierarchy
 └── archive abstraction — JAR/WAR/DEX/APK/directory input
 ```
@@ -214,6 +214,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Directory to analyze |
 | `recursive` | no | Recursively scan subdirectories (default: true) |
+| `limit` | no | Maximum archives to return (default: 200) |
 
 ```bash
 ./bin/jd-mcp-duo analyze_directory --path=./libs
@@ -243,11 +244,14 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 
 ### Inspection
 
-**`list_classes`** — List all classes in an archive or directory with normalized names and package statistics.
+**`list_classes`** — List classes in an archive or directory with normalized names and package statistics.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Path to an archive or directory |
+| `limit` | no | Maximum classes to return (default: 200) |
+| `package` | no | Optional package prefix filter |
+| `detailed` | no | Include package statistics (default: false) |
 
 ```bash
 ./bin/jd-mcp-duo list_classes --path=app.jar
@@ -405,12 +409,13 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo call_chain --path=app.jar --className=com.example.Service --methodName=handle --direction=callees --depth=5
 ```
 
-**`source_quality_report`** — Report decompilation quality metrics across all classes in an archive: success rate, engine used, patch count, fallback rate, and warnings.
+**`source_quality_report`** — Report decompilation quality metrics across classes in an archive: success rate, engine used, patch count, fallback rate, and warnings.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Input archive or directory |
 | `engine` | no | Decompiler engine to evaluate (default: auto) |
+| `classLimit` | no | Maximum classes to analyze (default: 100, 0 = unlimited) |
 
 ```bash
 ./bin/jd-mcp-duo source_quality_report --path=app.jar
@@ -496,13 +501,14 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo build_skeleton --path=./libs --outputDir=./skeleton
 ```
 
-**`list_dependencies`** — Scan an archive and list all embedded Maven dependencies found under META-INF/maven/. Outputs as JSON or GAV text format, optionally writing to a file.
+**`list_dependencies`** — Scan an archive and list embedded Maven dependencies found under META-INF/maven/. Outputs as JSON or GAV text format.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Path to a supported archive |
 | `format` | no | `json` (default) or `text` (GAV per line) |
 | `output` | no | File path to write the dependency list |
+| `limit` | no | Maximum dependencies to return (default: 500) |
 
 ```bash
 ./bin/jd-mcp-duo list_dependencies --path=app.jar --format=text --output=deps.txt
@@ -528,6 +534,18 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo remove_unnecessary_casts --path=./src/com/example/Main.java
 ```
 
+### Meta
+
+**`help`** — MCP liveness check. Lists all available tools with their descriptions. In MCP mode, use this to verify the server is running and discover available tools.
+
+| Parameter | Required | Description |
+|---|---|---|
+| *(none)* | — | No parameters; returns tool list |
+
+```bash
+./bin/jd-mcp-duo help
+```
+
 ### Common parameters
 
 | Parameter | Applicable tools | Description |
@@ -535,6 +553,8 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | `engine` | decompilation tools | Decompiler engine: `auto`, `jd-core-v1`, `jd-core-v0`, `jd-core-duo`, `cfr`, `procyon`, `fernflower`, `vineflower`, `jadx` |
 | `profile` | decompilation tools | `fast`, `accurate`, or `debuggable` — selects appropriate engine and options |
 | `scopePath` | search/analysis tools | Directory or archive for multi-archive scope indexing |
+| `indexPath` | search/analysis tools | Custom SQLite index path (default: `~/.jd-mcp-duo/index.sqlite`) |
+| `verbose` | batch decompile tools | Include per-file details in structured result (default: false) |
 | `releaseVersion` | decompilation tools | Target multi-release class version (defaults to current Java version) |
 | `descriptor` | method-level tools | JVM method descriptor for overload disambiguation, e.g. `(Ljava/lang/String;)V` |
 
@@ -573,10 +593,24 @@ The `call_chain` tool performs static call graph analysis using Class Hierarchy 
 
 ## Configuration
 
-The SQLite index path can be overridden via the `JAVA_TOOL_OPTIONS` environment variable, or by editing the launcher script:
+The SQLite index path defaults to `~/.jd-mcp-duo/index.sqlite`. Change it per-tool via `--indexPath`:
+
+```bash
+./bin/jd-mcp-duo search_in_jar --path=./lib --query=MyClass --indexPath=/d/projects/my-index.sqlite
+```
+
+Or globally via the launcher script or `JAVA_TOOL_OPTIONS`:
 
 ```bash
 JAVA_TOOL_OPTIONS="-Djd.mcp.sqlite.index=/path/to/custom/index.sqlite" ./bin/jd-mcp-duo <tool-name> [options]
+```
+
+### Stack size
+
+For large archives, increase the thread stack size:
+
+```bash
+java -Xss10m -jar jd-mcp-duo.jar <tool-name> [options]
 ```
 
 ## Credits

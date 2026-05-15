@@ -68,8 +68,9 @@ public class ListDependenciesTool implements MCPTool {
         }
 
         int totalDeps = deps.size();
-        if (limit > 0 && deps.size() > limit) {
-            deps = deps.subList(0, limit);
+        List<Dep> shown = deps;
+        if (limit > 0 && shown.size() > limit) {
+            shown = shown.subList(0, limit);
         }
 
         if (outputFile != null) {
@@ -77,7 +78,7 @@ public class ListDependenciesTool implements MCPTool {
                 Files.createDirectories(outputFile.getParent());
             }
             StringBuilder sb = new StringBuilder();
-            for (Dep d : deps) {
+            for (Dep d : shown) {
                 sb.append(d.gav()).append('\n');
             }
             Files.writeString(outputFile, sb.toString());
@@ -85,14 +86,14 @@ public class ListDependenciesTool implements MCPTool {
 
         if ("text".equals(format)) {
             StringBuilder sb = new StringBuilder();
-            for (Dep d : deps) {
+            for (Dep d : shown) {
                 sb.append(d.gav()).append('\n');
             }
             return ToolResult.text(sb.toString().trim());
         }
 
         JsonArray jsonDeps = new JsonArray();
-        for (Dep d : deps) {
+        for (Dep d : shown) {
             JsonObject o = new JsonObject();
             o.addProperty("groupId", d.groupId);
             o.addProperty("artifactId", d.artifactId);
@@ -104,10 +105,10 @@ public class ListDependenciesTool implements MCPTool {
         JsonObject structured = new JsonObject();
         structured.addProperty("path", path.toString());
         structured.addProperty("totalCount", totalDeps);
-        structured.addProperty("showing", deps.size());
+        structured.addProperty("showing", shown.size());
         structured.add("dependencies", jsonDeps);
 
-        String text = deps.size() + " embedded dependencies found in " + path;
+        String text = shown.size() + " embedded dependencies found in " + path;
         if (outputFile != null) {
             text += ", saved to " + outputFile;
         }
