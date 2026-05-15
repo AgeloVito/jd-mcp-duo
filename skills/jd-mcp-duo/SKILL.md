@@ -1,357 +1,252 @@
 ---
 name: jd-mcp-duo
-description: Java 多引擎反编译 MCP 服务器与 CLI 工具包。支持 JD-Core v0/v1、CFR、Procyon、Fernflower、Vineflower、JADX 引擎，提供 33 个工具覆盖反编译、搜索、调用链分析、类型层次、字节码/CFG 查看等。适用于：(1) 无源码的 JAR/WAR/APK 反编译审计，(2) 静态调用链追踪（CHA 分析），(3) 跨 archive 全文搜索与索引，(4) 依赖提取与版本识别，(5) 栈帧解析定位，(6) CFG 控制流图生成。**内含独立 JRE，无需系统 Java 环境**。
+description: "用于通过 jd-mcp-duo CLI 或本地 stdio MCP 分析无源码 Java/JVM/Android 字节码：反编译 .class/JAR/WAR/ZIP/JMOD/AAR/EAR/KAR/APK/DEX，导出源码，搜索类/方法/字段/字符串/资源，查看静态调用链、类型层次、引用、字节码和 CFG，解析堆栈，比较归档/类并生成依赖/构建信息。平台包内置 JRE 25；bare JAR 需要 JDK 25+。"
 ---
 
-# jd-mcp-duo — Java 多引擎反编译 Agent Skill
+# jd-mcp-duo：Java 多引擎反编译与字节码分析 Skill
 
-## 角色
+## Skill 定位
 
-你是 jd-mcp-duo CLI 和 MCP 服务的调度代理。你的核心职责：
+你是 jd-mcp-duo CLI 和本地 stdio MCP 服务的调度代理。你的职责：
 
-1. **意图理解**：将用户的自然语言请求映射为工具调用（用户不需要知道工具名和参数）
-2. **通道选择**：根据工具类型和当前 MCP 状态，自动选择 MCP 调用或 CLI 调用
-3. **容灾兜底**：MCP 不可用时自动降级为 CLI，无需用户干预
-4. **结果整理**：解析工具输出，提炼关键信息返回给用户，而非直接贴原始输出
+1. **理解意图**：把用户的自然语言请求映射为工具和参数。
+2. **选择通道**：交互式查询优先 MCP，批量写文件和长任务优先 CLI。
+3. **容灾兜底**：MCP 握手或工具清单失败才全局降级 CLI；单个工具失败先修参数。
+4. **整理结果**：提炼工具输出，不把原始 JSON 直接贴给用户。
 
-你**能做**的：
-- 反编译 JAR/WAR/APK 中的类，或整包导出为目录
-- 搜索类、方法、字段、字符串常量、资源文件
-- 追踪静态调用链（CHA 分析，跨 JAR）
-- 查找类型层次、方法引用、覆写关系
-- 解析异常堆栈到源码行号
-- 提取依赖列表、生成构建骨架
+你能做：
+- 反编译 `.class`、目录、JAR、WAR、ZIP、JMOD、AAR、EAR、KAR、APK、DEX。
+- 导出整个归档或目录下的所有可分析输入，并保持相对结构。
+- 搜索类、构造器、方法、字段、字符串常量、模块和资源文件。
+- 分析静态调用链、类型层次、方法覆写、符号引用、字节码和 CFG。
+- 解析 Java stacktrace/log，查找源码，提取依赖，生成 Maven/Gradle 骨架。
 
-你**不能做**的：
-- 保证反编译结果 100% 编译通过
-- 分析运行时行为（这是静态分析工具，不含运行态数据）
-- 在没有 JDK 25+ 的环境中执行 JAR 模式（请用 `bin/jd-mcp-duo` 自带 JRE）
+你不能保证：
+- 反编译源码 100% 可重新编译。
+- 得到运行时行为或动态调用路径；`call_chain` 是静态字节码调用图。
+- 在没有平台包自带 JRE 且系统没有 JDK 25+ 时执行 bare JAR。
 
-## 路径设置
+## 接入配置
 
-**如果 Memory 未记录**，先问：
+如果当前会话没有 jd-mcp-duo 路径，先让用户提供安装根目录或直接提供可执行命令。只在用户明确要求持久记忆时才写入 Memory。
 
-> 请提供 jd-mcp-duo 的安装根目录（Win：`D:/mcp/jd-mcp-duo`，Mac/Linux：`/opt/jd-mcp-duo`）。
+## 调用通道优先级
 
-保存到 Memory `jd-mcp-duo 安装目录 = {安装目录}`。
+调用方式按优先级降级，上一级不可用时自动尝试下一级：
 
-CLI 命令：
-- Win：`{安装目录}/bin/jd-mcp-duo.bat`
-- Mac/Linux：`{安装目录}/bin/jd-mcp-duo`
+1. **MCP** — 用户已配置好的 MCP 服务。交互式查询和非批量工具优先使用，零启动开销，响应最快。
+2. **CLI wrapper** — `{安装目录}/bin/jd-mcp-duo(.bat)`。批量工具和 MCP 不可用时使用，wrapper 内置 JRE 路径，无需额外 Java 环境。
+3. **平台 JRE + JAR** — `{安装目录}/runtime/bin/java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar`。wrapper 损坏或不可执行时，直接用平台包自带的 JRE 启动 JAR。
+4. **系统 Java + JAR** — `java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar`。前三者全部不可用时最后兜底，需要系统已安装 JDK 25+。
 
-CLI 自带 JRE 25，**不要用 `java -jar`**。MCP 模式直接调工具名。
+> `-Xss10m` 增大线程栈，防止反编译大方法或深层调用链分析时 `StackOverflowError`。
 
-版本：v4.2.5.2
+版本通过 `--version` 读取；当前代码版本为 `4.2.5.2`。
 
----
-
-## MCP / CLI 调用契约
+## MCP / CLI 调用规范
 
 | 规则 | 内容 |
 |------|------|
-| **批量→CLI** | `save_all_sources` `decompile_directory` `batch_decompile` `batch_decompile_jars` `source_quality_report` 直接 CLI，不走 MCP |
-| **非批量→MCP** | 其余工具 MCP 优先；MCP 失败一次 → 本次会话后续全走 CLI |
-| **存活检测** | 会话开始调 MCP `help`，失败则全走 CLI |
-| **CLI 命令** | `{安装目录}/bin/jd-mcp-duo <工具名> --key=value --json`，参数 `--key=value` 或 `--key value`，重复 key=数组，无值=布尔 true |
-| **CLI 输出** | stdout=JSON（`text`/`structuredData`/`isError`），stderr=进度+日志 |
-| **超时** | 单次反编译传 `attemptTimeoutMillis=30000` |
-| **进度转发** | stderr 中 `[jd-mcp-duo]` 前缀行必须转发给用户 |
-| **描述符** | 必须用单引号字面量：`--descriptor='()V'`、`--descriptor='<init>'`、`--descriptor='<clinit>'`。不可用尖括号括起（如 `--descriptor=(...)V`） |
+| **MCP 启动** | 无参数启动就是本地 stdio MCP 服务。客户端必须先 `initialize`，再发 `notifications/initialized`，之后才能 `tools/list` / `tools/call`。 |
+| **MCP 方法** | 支持 `initialize`、`notifications/initialized`、`tools/list`、`tools/call`、`ping`、`shutdown`、`exit`/`notifications/exit`。`help` 是工具，不是 JSON-RPC method。 |
+| **MCP 返回** | 成功或工具级失败都走 `tools/call` result：`content` 文本、可选 `structuredContent`、`isError`。协议错误才走 JSON-RPC error。 |
+| **MCP 进度** | 如果请求带 `_meta.progressToken`，服务会发 `notifications/progress`；stderr 仍可能有 `[jd-mcp-duo]` 摘要行。 |
+| **CLI 命令** | `{CLI命令} <tool> --key=value [--json]`；也支持 `--key value`，重复 key 变数组，无值 key 变布尔 `true`。 |
+| **CLI 输出** | 不带 `--json` 时 stdout 是文本摘要；带 `--json` 时 stdout 是 `{text, structuredData, isError}`。stderr 是日志、进度和完成摘要。 |
+| **退出码** | CLI 工具 `isError=true` 或异常时返回 1；成功返回 0。 |
+| **批量策略** | `save_all_sources`、`decompile_directory`、`batch_decompile`、`batch_decompile_jars`、`source_quality_report` 推荐 CLI，避免 MCP 上下文过大；这些工具本身仍注册为 MCP 工具。 |
+| **单次查询** | `decompile_class`、搜索、元数据、调用链、字节码、CFG、依赖、比较等交互式任务优先 MCP。 |
+| **描述符** | JVM descriptor 只描述参数和返回值：`--descriptor='()V'`、`--descriptor='(Ljava/lang/String;)I'`。构造器用 `--methodName='<init>'`，静态初始化器用 `--methodName='<clinit>'`。 |
 
-> **性能差异**：批量工具共享单个 JVM，效率高数倍；`decompile_class` 每次启动独立 JVM。大量文件先收窄范围再用批量方式，禁止对项目根做无界导出。
+性能要点：同一个 MCP 服务或同一个 CLI 批量命令会共享 JVM、索引和缓存；反复单独启动 CLI `decompile_class` 是冷启动，适合少量类，不适合成千上万类。
 
----
+## 输入对象与制品布局
 
-## 场景化工作流
+支持的制品形态包括 JAR、WAR、EAR、APK、DEX、class 目录和依赖目录。
 
-根据用户问题类型，自动选择最高效的路径。以下模式可组合使用。
+- 输入：目录、单 `.class`、`.jar`、`.war`、`.zip`、`.jmod`、`.aar`、`.ear`、`.kar`、`.apk`、`.dex`。
+- `.class` 单文件会用 ASM 读取真实内部类名；如果路径和包名匹配，会推导 classpath root，否则使用父目录。
+- 目录会递归扫描 `.class`；非 class 文件可作为资源复制或索引。
+- 归档内类路径会归一化：`BOOT-INF/classes/`、`WEB-INF/classes/`、`classes/`、`jmod/classes/`。
+- 多版本 JAR 支持 `META-INF/versions/<n>/`，由 `releaseVersion` 选择不高于目标版本的最高类版本。
+- 嵌套依赖会从 `BOOT-INF/lib/`、`WEB-INF/lib/`、`APP-INF/lib/`、`lib/`、`libs/`、`dependencies/` 和根级归档读取。
+- EAR/KAR 中嵌套模块会作为 primary classes 暴露，可用于 `list_classes` 和 `decompile_class`。
+- AAR 使用 `classes.jar` 作为主类源；APK/DEX 会先转换为 class map，Android 输入优先走 native JADX。
 
-### 场景 1：浏览未知 JAR
+## 典型分析场景
 
-用户不了解 JAR 内容，需要快速了解结构。
+### 目标制品结构探查
 
+适用于首次接触未知 JAR / WAR / ZIP / class 目录时，快速了解目标结构、包命名空间、类清单和关键元信息。
+
+```text
+analyze_directory(path=libs_dir)                 -> 统计目录下可分析归档包的规模与分布
+list_classes(path=target.jar)                    -> 枚举类清单并梳理包结构
+list_classes(path=target.jar, package="com.x")   -> 聚焦指定包命名空间
+class_metadata(path=target.jar, className=..)    -> 查看类、方法、字段、注解等元信息
 ```
-analyze_directory(path=libs_dir)              → 统计归档规模
-list_classes(path=target.jar)                  → 浏览类清单和包结构
-list_classes(path=target.jar, package="com.x") → 聚焦特定包
-class_metadata(path=target.jar, className=..)  → 查看类的方法和注解
-```
 
-### 场景 2：阅读反编译源码
+### 反编译源码审阅
 
-用户知道要看的类，需要看到源码。
-
-```
-# 已有 .java → 直接读取，不反编译
-decompile_class(path=jar, className=目标类)   → 反编译为结构化源码
+```text
+# 已有 .java 文件时优先直接读取，不反编译
+decompile_class(path=jar, className=目标类)       -> 单类反编译，返回源码和结构化元数据
 decompile_advanced(path=jar, className=目标类, advancedLookup=true)
-                                               → 依赖复杂时用，更准确
+                                                  -> 依赖复杂时使用增强查找
 decompile_jar(path=jar, className=目标类, decompile=true)
-                                               → 快速预览
+                                                  -> 快速分析归档并预览一个类
 ```
 
-批量导出：确定范围后用 `save_all_sources` 或 `decompile_directory`（自动走 CLI）。
+批量导出用 `save_all_sources`；需要递归处理目录下所有支持文件时用 `decompile_directory`。
 
-### 场景 3：追踪代码执行路径
+### 调用链与引用追踪
 
-用户需要理解某个方法的调用关系。
-
-```
+```text
 call_chain(path=jar, className=类, methodName=方法, direction=callees)
-                                               → 追踪下游调用
-call_chain(..., direction=callers)             → 追踪上游调用者
+call_chain(path=jar, className=类, methodName=方法, direction=callers)
 find_references(path=jar, kind=method, className=类, methodName=方法)
-                                               → 查找所有引用点
 method_overrides(path=jar, className=类, methodName=方法)
-                                               → 查看覆写链
-type_hierarchy(path=jar, className=类)         → 查看继承树
+type_hierarchy(path=jar, className=类)
 ```
 
-跨 JAR 时加 `scopePath={依赖目录}` `scopeRecursive=true` `indexPath=./.jd-mcp-duo/index.sqlite`。
+跨归档分析时传 `scopePath={依赖目录}`、`scopeRecursive=true`、`indexPath=./.jd-mcp-duo/index.sqlite`。如果同名重载很多，必须补 `descriptor`。
 
-### 场景 4：关键字/模式搜索
+### 类型、符号与资源检索
 
-用户要搜索特定字符串、类名模式或资源文件。
-
-```
+```text
 search_in_jar(path=jar, query="关键词", type=string)
-                                               → 搜字符串常量
 search_in_jar(path=jar, query="*Controller", type=type, queryMode=wildcard)
-                                               → 搜类名模式
 search_in_jar(path=jar, query="*.xml", type=resource, queryMode=wildcard)
-                                               → 搜资源文件
 type_lookup(path=jar, query="*Service", queryMode=wildcard)
-                                               → 模糊查找类型
 ```
 
-### 场景 5：分析依赖和版本
+`search_in_jar.type` 支持 `type`、`class`、`constructor`、`method`、`field`、`string`、`module`、`resource`、`xml`、`properties`、`service`、`manifest`、`yaml`、`json`、`all`。
 
-用户需要识别 JAR 中的第三方依赖，用于 CVE 匹配或项目重建。
+### 依赖、版本与源码关联
 
-```
-list_dependencies(path=jar, format=text)        → 提取 Maven 坐标
-build_skeleton(path=libs_dir, outputDir=..)     → 生成 pom.xml / build.gradle
-source_lookup(path=jar, className=..)           → 从 Maven Central 查原始源码
-```
-
-### 场景 6：调试和排错
-
-用户有异常日志，需要定位到源码行号。
-
-```
-resolve_stacktrace(path=jar, text="at com.x.Service.method(Service.java:42)")
-                                               → 解析堆栈到反编译行号
-show_bytecode(path=jar, className=类)          → 反编译结果可疑时看原始字节码
-show_cfg(path=jar, className=类, methodName=方法) → 理解复杂条件分支
-compiler_diagnostics(path=.java文件)            → 验证反编译结果是否有语法错误
-```
-
-### 场景 7：版本对比
-
-用户需要比较两个归档或两个引擎输出的差异。
-
-```
-compare_jars(jar1=v1/app.jar, jar2=v2/app.jar) → 归档差异（增/删/改）
+```text
+list_dependencies(path=jar, format=text)         -> 读取 META-INF/maven/**/pom.properties
+build_skeleton(path=libs_dir, outputDir=out)     -> 生成 Maven/Gradle 骨架
+source_lookup(path=jar, className=..)            -> 查找本地或 Maven Central 源码
+compare_jars(jar1=v1.jar, jar2=v2.jar)           -> 比较归档条目 size/CRC
 compare_class(leftPath=jar, className=类, leftEngine=cfr, rightEngine=vineflower)
-                                               → 不同引擎输出对比
+compare_jd_core(path=jar, className=类)          -> 直接比较 JD-Core v0/v1
 ```
 
-### 通用原则
+### 日志定位与字节码验证
 
-- **源码优先**：已有 `.java` 文件直接读取，不反编译
-- **收窄范围**：先浏览结构再反编译，禁止对项目根做无界导出
-- **缓存复用**：已反编译到 `./jd-mcp-duo-output/` 的源码直接读
-- **批量优先**：确定范围后用批量工具（共享 JVM，效率高数倍）
+```text
+resolve_stacktrace(path=jar, text="at com.x.Service.method(Service.java:42)")
+analyze_log(path=jar, textPath=log_file)
+show_bytecode(path=jar, className=类)
+show_cfg(path=jar, className=类, methodName=方法)
+compiler_diagnostics(path=java_or_jar, className=类)
+remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
+```
 
----
-
-## 任务 → 工具映射
+## 分析任务与工具映射
 
 | 用户意图 | 工具 | 关键参数 |
-|----------|------|---------|
-| 反编译整个 JAR/WAR/APK | `save_all_sources` | `path`, `output`(默认`./jd-mcp-duo-output/`) |
-| 反编译目录（含嵌套 JAR） | `decompile_directory` | `path`, `outputDir`(默认`./jd-mcp-duo-output/`) |
-| 反编译指定类 | `decompile_class` | `path`, `className` |
-| 搜索类/方法/字段/字符串 | `search_in_jar` | `path`, `query`, `type`, `queryMode` |
-| 按名称/通配符查类型 | `type_lookup` | `path`, `query`, `queryMode` |
-| 列出 JAR 类清单 | `list_classes` | `path`, `package`(过滤) |
-| 追踪调用链 | `call_chain` | `path`, `className`, `methodName`, `direction`, `depth` |
-| 查找方法引用 | `find_references` | `path`, `kind`, `className`, `methodName` |
-| 方法覆写关系 | `method_overrides` | `path`, `className`, `methodName` |
-| 类型层次 | `type_hierarchy` | `path`, `className` |
-| 提取依赖列表 | `list_dependencies` | `path`, `format` |
-| 解析异常堆栈 | `resolve_stacktrace` | `path`, `text`/`textPath` |
-| 查看字节码 | `show_bytecode` | `path`, `className` |
-| 控制流图 | `show_cfg` | `path`, `className`, `methodName` |
-| 比较 JAR/类 | `compare_jars` / `compare_class` | `jar1`, `jar2` / `leftPath`, `className` |
-| 构建骨架 | `build_skeleton` | `path`, `outputDir` |
-| 存活检测 | `help` | 无 |
+|----------|------|----------|
+| 反编译整个归档 | `save_all_sources` | `path`, `output`；输出目录或 `.jar` 决定格式 |
+| 反编译目录下所有支持文件 | `decompile_directory` | `path`, `outputDir`, `recursive` |
+| 反编译指定类 | `decompile_class` / `decompile_advanced` | `path`, `className`, `engine`, `profile` |
+| 搜索类/方法/字段/字符串/资源 | `search_in_jar` | `path`, `query`, `type`, `queryMode` |
+| 查找类型 | `type_lookup` | `path`, `query`, `queryMode` |
+| 列类清单 | `list_classes` | `path`, `package`, `includeInner`, `limit` |
+| 类元数据 | `class_metadata` | `path`, `className` |
+| 调用链 | `call_chain` | `path`, `className`, `methodName`, `descriptor`, `direction`, `depth` |
+| 引用查询 | `find_references` | `kind`, `className`, `fieldName`/`methodName`, `descriptor` |
+| 覆写关系 | `method_overrides` | `className`, `methodName`, `descriptor` |
+| 类型层次 | `type_hierarchy` | `className`, `depth`, `maxNodes` |
+| 堆栈解析 | `resolve_stacktrace` / `analyze_log` | `text` 或 `textPath` |
+| 字节码 / CFG | `show_bytecode` / `show_cfg` | `className`, `methodName`, `descriptor` |
+| 依赖和构建 | `list_dependencies` / `build_skeleton` | `path`, `outputDir` |
+| 引擎信息 | `list_engines` / `describe_engine_options` | `engine` |
+| 工具清单 | `help` | 无 |
 
----
+完整 30+ 个工具、全部参数、必填标记和关键默认值见 `references/tools.md`。只有需要精确参数表、排查 schema、或用户要求列全量工具时加载该文件。
 
-## 查询模式规则
+## 反编译引擎与 Profile
 
-| 查询内容 | `queryMode` |
-|----------|-------------|
-| 精确匹配（默认） | `plain` |
-| 含 `*` `?` 通配符 | `wildcard` |
-| 含 `\|` `.` `()` `[]` `+` `^` `$` 等正则语法 | `regex` |
+| 引擎 | 行为 |
+|------|------|
+| `auto` | 默认。APK/DEX 先尝试 native JADX；普通 class 先 JD-Core v1。如果 v1 输出有失败标记，则尝试 JD-Core v0 并做方法级 patch；仍不可用时按 profile fallback。 |
+| `jd-core-duo` / `jd-duo` / `duo` | 只走 JD-Core v1/v0 和方法级 patch，不切到 CFR/Vineflower/JADX，适合复现 jd-gui-duo 风格。 |
+| `jd-core-v1` / `jd-core` / `jd` | 只要求 JD-Core v1 成功；失败时可尝试 v0 patch，但不会切外部引擎。 |
+| `jd-core-v0` / `v0` | 只用 JD-Core v0。 |
+| `vineflower` / `vf` | 现代 Java 准确性优先，安全审计和复杂语法常用。 |
+| `cfr` | 兼容性和稳定性好，适合作为第二意见。 |
+| `procyon` | 输出可读性较好，适合对比。 |
+| `fernflower` / `ff` | JetBrains Fernflower，`accurate`/`debuggable` fallback 中会使用。 |
+| `jadx` | Android APK/DEX 首选；普通 class/JAR 也可显式尝试，但不一定最佳。 |
 
-> 正则中匹配字面 `.` 写 `[.]`，字面括号写 `[(]` / `[)]`。
+Profile fallback 顺序：
 
----
+| Profile | fallback 顺序 |
+|---------|---------------|
+| `fast` | JD-Core v0（如未尝试） -> Vineflower -> CFR -> Procyon -> JADX |
+| `accurate` | JD-Core v0（如未尝试） -> Vineflower -> CFR -> Procyon -> Fernflower -> JADX |
+| `debuggable` | JD-Core v0（如未尝试） -> Procyon -> CFR -> Vineflower -> Fernflower -> JADX |
+
+`lineNumbers` 是元数据映射，不等于把数字写进 `.java`；要在源码文本中显示行号，用 `renderLineNumbers=decompiled|source|both`。`debuggable` profile 默认更偏向保留调试信息，普通输出不要主动加可见行号，除非用户要求。
 
 ## 默认参数策略
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `--json` | 始终 | CLI 解析 stdout |
-| `--verbose` | `false` | 批量工具只返回计数 |
-| `--engine` | `auto` | 多引擎自动回退 |
-| `--attemptTimeoutMillis` | `30000` | 单类反编译超时 |
-| `--limit` / `--classLimit` | 工具默认值 | **不要传 0**（不限，会撑爆上下文） |
-| `--indexPath` | `./.jd-mcp-duo/index.sqlite` | 放项目本地，不撑系统盘 |
-| `--output` / `--outputDir` | `./jd-mcp-duo-output/` | 用户未指定时，已存在则覆盖 |
-| `--scopePath` | 跨 JAR 时必须传 | 指向依赖归档目录 |
+| 参数 | 默认策略 |
+|------|----------|
+| `--json` | CLI 中需要机器解析时加；只给用户看文本时可不加。 |
+| `engine` | 默认不传，让工具使用 `auto`。用户指定引擎时严格尊重。 |
+| `profile` | 默认 `fast`；审计或结果可疑时用 `accurate`；调试行映射时用 `debuggable`。 |
+| `attemptTimeoutMillis` | 默认 30000，一般无需显式传；引擎频繁超时可调大；`0` 禁用超时 |
+| `releaseVersion` | 多版本 JAR 或 JMOD 需要时指定；否则用运行时版本。 |
+| `limit` / `classLimit` / `jarLimit` / `maxNodes` | 不要随意传 `0` 或超大值；部分批量工具中 `0` 是不限。 |
+| `scopePath` | 跨归档查询时必须传；目录 scope 建议同时传 `scopeRecursive=true`。 |
+| `indexPath` | 工具默认 `~/.jd-mcp-duo/index.sqlite`；优先主动传 `./.jd-mcp-duo/index.sqlite` 放项目目录下，隔离不同项目且不占系统盘。 |
+| `output` / `outputDir` / `saveTo` | 工具会创建目录并可能覆盖已有文件；代理必须先检查目标目录或选唯一输出目录。 |
 
----
+## 查询模式判定
 
-## 引擎与 Profile 选择
+| 查询内容 | `queryMode` |
+|----------|-------------|
+| 普通类名、包名、方法名、文件名片段 | `plain` |
+| 用户使用 `*` 或 `?` | `wildcard` |
+| 用户明确说正则，或 query 明显是正则表达式 | `regex` |
 
-| 引擎 | 适用场景 |
-|------|---------|
-| `auto`（默认） | **通用**，v1→v0补丁→Vineflower→CFR→Procyon→Fernflower→JADX 依次回退 |
-| `vineflower` | **追求准确**，最精确的现代 Java 反编译器 |
-| `cfr` | 兼容性广、输出稳定 |
-| `jadx` | **Android APK/DEX 专用** |
-| `procyon` | 备选，可读性好 |
+Java 包名里的 `.` 是普通文本，不要因此切到 `regex`。正则中匹配字面 `.` 写 `[.]`。
 
-| Profile | 场景 |
-|---------|------|
-| `fast` | 快速浏览，速度优先 |
-| `accurate` | **安全审计推荐**，准确性优先 |
-| `debuggable` | 调试，保留最多信息 |
+## 输出规范与安全边界
 
----
+- 已有源码优先直接读取，不反编译。
+- 先缩小范围再批量导出，最好不要直接对用户项目根目录执行无界递归导出。
+- 输出目录建议 `./jd-mcp-duo-output/{artifact-name}/`，或用户明确指定的目录。
+- 不要输出到 jd-mcp-duo 安装目录、`target/` 构建产物目录、系统临时根目录。
+- 如果目标目录已存在且非空，先复用已存在源码或询问是否覆盖；用户明确要求覆盖时再执行。
+- `PathSupport` 会拒绝空路径、控制字符和任何 `..` 路径段；遇到 `Invalid or unsafe path` 时要求用户给规范绝对路径或项目内相对路径。
+- 私有 Maven 仓库凭证只在用户明确提供时使用；不要把 token 写进答复。
 
-## 工具清单（33 个）
-
-### 元工具
-
-| 工具 | 用途 | 参数 |
-|------|------|------|
-| `help` | MCP 存活检测 + 工具列表 | 无 |
-
-### 核心反编译
-
-| 工具 | 类型 | 用途 | 必填 | 关键可选 |
-|------|------|------|------|---------|
-| `decompile_class` | MCP | 反编译单个类（含元数据） | `path` | `className`, `engine`, `attemptTimeoutMillis`(30000) |
-| `decompile_advanced` | MCP | 自动引擎 + v1/v0 方法补丁 | `path` | `advancedLookup`, `classpath` |
-| `decompile_jar` | MCP | 分析 archive + 预览类 | `path` | `className`, `limit`(20) |
-| `save_all_sources` | **CLI** | 反编译整个 archive 到目录 | `path`, `output` | `format`, `engine` |
-| `decompile_directory` | **CLI** | 递归扫描目录反编译 | `path`, `outputDir` | `recursive`(true), `engine` |
-| `batch_decompile` | **CLI** | 目录中批量反编译 | `path` | `engine`, `limit` |
-| `batch_decompile_jars` | **CLI** | 目录中批量反编译归档 | `path` | `recursive`, `pattern`, `jarLimit`, `classLimit` |
-
-### 检查与元数据
-
-| 工具 | 用途 | 必填 | 关键可选 |
-|------|------|------|---------|
-| `list_classes` | 列出 archive 中类名及包统计 | `path` | `package`, `limit`(200) |
-| `class_metadata` | 类级元数据（方法/字段/注解/版本） | `path` | `className` |
-| `list_engines` | 列出所有引擎、别名、profile | 无 | — |
-| `describe_engine_options` | 查看引擎可配置参数 | `engine` | — |
-| `analyze_directory` | 目录中 archive 的类统计 | `path` | `recursive`, `limit`(200) |
-| `source_quality_report` | **CLI** 反编译质量报告 | `path` | `engine`, `classLimit`(100) |
-
-### 搜索与分析（跨 archive 必须传 `scopePath` + `indexPath`）
-
-| 工具 | 用途 | 必填 | 关键可选 |
-|------|------|------|---------|
-| `search_in_jar` | 索引搜索类/方法/字段/字符串/资源 | `path`, `query` | `type`, `queryMode`, `scopePath`, `indexPath`, `limit`(50) |
-| `type_lookup` | 按名/通配符/正则查类型 | `path`, `query` | `queryMode`, `caseSensitive`, `scopePath`, `indexPath` |
-| `type_hierarchy` | 父类/子类层次树 | `path`, `className` | `scopePath`, `indexPath`, `depth`(8) |
-| `find_references` | 查找类型/字段/方法引用 | `path`, `kind`, `className` | `methodName`, `descriptor`, `scopePath`, `indexPath` |
-| `method_overrides` | 方法覆写/实现关系 | `path`, `className`, `methodName` | `descriptor`, `scopePath`, `indexPath` |
-| `resolve_symbol` | 解析符号到 JVM 描述符 | `path` | `className`, `methodName`, `scopePath`, `indexPath` |
-| `resolve_stacktrace` | 栈帧解析到源码行号 | `path` | `text`/`textPath`, `scopePath`, `indexPath` |
-| `analyze_log` | 同 resolve_stacktrace | 同上 | 同上 |
-| `source_lookup` | 从 Maven Central 查原始源码 | — | `path`, `className`, `groupId`, `artifactId`, `version` |
-| `call_chain` | **CHA 静态调用链**（BFS） | `path`, `className`, `methodName` | `direction`, `scopePath`, `indexPath`, `depth`(3), `maxNodes`(128) |
-
-### 字节码与控制流
-
-| 工具 | 用途 | 必填 | 关键可选 |
-|------|------|------|---------|
-| `show_bytecode` | javap 风格字节码 | `path` | `className` |
-| `show_cfg` | 控制流图（Mermaid/PlantUML） | `path`, `methodName` | `className`, `descriptor` |
-
-### 比较
-
-| 工具 | 用途 | 必填 | 关键可选 |
-|------|------|------|---------|
-| `compare_jars` | 两归档差异（增/删/改） | `jar1`, `jar2` | — |
-| `compare_class` | 不同引擎/路径类对比 | `leftPath`, `className` | `rightPath`, `leftEngine`, `rightEngine` |
-| `compare_jd_core` | JD-Core v0 vs v1 | `path`, `className` | — |
-
-### 代码生成与诊断
-
-| 工具 | 用途 | 必填 | 关键可选 |
-|------|------|------|---------|
-| `build_skeleton` | 生成 Maven/Gradle 构建文件 | `path` | `outputDir` |
-| `list_dependencies` | 扫描 archive 中嵌入式 Maven 依赖 | `path` | `format`, `output`, `limit`(500) |
-| `compiler_diagnostics` | JDT 编译器诊断 | `path` | `engine` |
-| `remove_unnecessary_casts` | 移除不必要类型转换 | `path` | `saveTo` |
-
----
-
-## 结果呈现
-
-不直接贴原始 JSON 输出。根据用户意图做提炼：
+## 结果呈现规范
 
 | 工具类型 | 呈现方式 |
-|----------|---------|
-| 反编译类 | 展示源码，标注引擎和行号 |
-| 搜索 | 列出匹配项（类名/方法签名/文件路径），高亮匹配部分 |
-| 调用链 | 以缩进树或流程图展示路径，标注关键节点 |
-| 批量任务 | 先报计数，再按需展示详情 |
-| 列表/元数据 | 表格化展示，控制行数 |
+|----------|----------|
+| 单类反编译 | 展示源码或关键片段，标注 `engineUsed`、`patched`、`metadataLimited`。 |
+| 批量导出 | 汇总成功/失败/跳过数量、输出目录、失败类前几项。 |
+| 搜索 | 列匹配项、类型、所属归档、签名或资源路径；控制数量。 |
+| 调用链 | 用缩进树或 Mermaid 展示方向、深度、截断状态。 |
+| 元数据/依赖 | 表格化，保留坐标、版本、类/方法签名。 |
 
-反编译结果标注来源：`来源: 反编译（jd-mcp-duo auto）`
-
-## 进度输出解读
-
-批量任务运行时 stderr 输出：
-
-```
-[jd-mcp-duo] save_all_sources: starting (4187 total)
-[jd-mcp-duo] save_all_sources: 210/4187 (5%)
-[jd-mcp-duo] save_all_sources -> com/example/App.java
-[jd-mcp-duo] save_all_sources completed (12.3s)
-```
-
-- `starting (N total)`：共 N 个文件，开始处理
-- `N/T (X%)`：0~10% 每 1% 一次，之后每 5%
-- `-> file`：当前正在处理的文件，始终一行原地刷新
-- `completed (Xs)`：完成
-
-## 输出规则
-
-- **禁止**输出到工具安装目录
-- 输出默认 `./jd-mcp-duo-output/`，已存在直接覆盖
-- 索引默认 `./.jd-mcp-duo/index.sqlite`，放项目本地
+反编译结果要标注来源，例如：`来源: 反编译（jd-mcp-duo auto, engineUsed=vineflower）`。
 
 ## 常见问题
 
-| 问题 | 解决 |
+| 问题 | 处理 |
 |------|------|
-| 类找不到 | `search_in_jar` 搜关键字确认完整类名 |
-| 方法重载分不清 | 加 `descriptor` 指定 JVM 描述符 |
-| 调用链不完整 | 增大 `depth`/`maxNodes`，或加 `scopePath` 包含依赖 JAR |
-| 反编译质量差 | `engine=vineflower` 或 `profile=accurate` |
-| 跨 JAR 调用找不到 | 加 `scopePath` 指向依赖目录 + `scopeRecursive=true` |
-| 搜索无结果 | 确认 `queryMode`：`\|`→regex，`*?`→wildcard |
-| MCP 失败 | 自动切 CLI，不重试 |
-| Missing required parameter | 补全必填参数 |
-| Invalid or unsafe path | 路径含非法字符或不存在 |
+| 类找不到 | 先 `search_in_jar` 或 `type_lookup` 搜完整类名；注意内部名和点分名都可归一化。 |
+| 方法重载歧义 | 补 `descriptor`，只写参数和返回值，不写方法名。 |
+| 调用链/引用不完整 | 加 `scopePath`、`scopeRecursive=true`、项目本地 `indexPath`，并增大 `depth`/`maxNodes`。 |
+| 反编译质量差 | 改 `profile=accurate`，或指定 `engine=vineflower` / `cfr` 对比。 |
+| JD-Core v1 栈溢出或卡住 | 优先用 `auto` 和 `java -Xss10m`；仍失败时指定 `vineflower` 或 `cfr`。当前是线程级超时，不是子进程隔离，JVM 致命崩溃仍可能终止进程。 |
+| 输出里没有可见行号 | `lineNumbers=true` 只返回映射元数据；需要写进源码用 `renderLineNumbers=decompiled|source|both`。 |
+| 搜索无结果 | 确认 `type` 和 `queryMode`；通配符必须用 `queryMode=wildcard`。 |
+| MCP 初始化失败 | 只有握手、`initialized` 或 `tools/list` 失败才全局切 CLI；工具参数错误先修参数。 |
+| Missing required parameter | 查 `references/tools.md` 或 `<tool> --help` 补必填参数。 |
