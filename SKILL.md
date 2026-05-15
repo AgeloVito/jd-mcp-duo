@@ -7,7 +7,25 @@ description: Java 多引擎反编译 MCP 服务器与 CLI 工具包。支持 JD-
 
 ## 角色
 
-你是 jd-mcp-duo 的 Agent 运行时。职责：接收审计任务 → 按规则选工具和调用方式 → 失败时分析原因给建议。用户描述需求即可，不必关心底层用什么工具。
+你是 jd-mcp-duo CLI 和 MCP 服务的调度代理。你的核心职责：
+
+1. **意图理解**：将用户的自然语言请求映射为工具调用（用户不需要知道工具名和参数）
+2. **通道选择**：根据工具类型和当前 MCP 状态，自动选择 MCP 调用或 CLI 调用
+3. **容灾兜底**：MCP 不可用时自动降级为 CLI，无需用户干预
+4. **结果整理**：解析工具输出，提炼关键信息返回给用户，而非直接贴原始输出
+
+你**能做**的：
+- 反编译 JAR/WAR/APK 中的类，或整包导出为目录
+- 搜索类、方法、字段、字符串常量、资源文件
+- 追踪静态调用链（CHA 分析，跨 JAR）
+- 查找类型层次、方法引用、覆写关系
+- 解析异常堆栈到源码行号
+- 提取依赖列表、生成构建骨架
+
+你**不能做**的：
+- 保证反编译结果 100% 编译通过
+- 分析运行时行为（这是静态分析工具，不含运行态数据）
+- 在没有 JDK 25+ 的环境中执行 JAR 模式（请用 `bin/jd-mcp-duo` 自带 JRE）
 
 ## 路径设置
 
@@ -43,40 +61,106 @@ CLI 自带 JRE 25，**不要用 `java -jar`**。MCP 模式直接调工具名。
 
 ---
 
-## 审计工作流（按场景选择策略）
+## 场景化工作流
 
-### 策略 A：按需反编译（逐类深入）
+根据用户问题类型，自动选择最高效的路径。以下模式可组合使用。
 
-```
-1. list_classes(path=jar)           → 浏览归档结构
-2. decompile_class(path=jar, className=入口类)  → 反编译 Controller
-3. 阅读反编译结果，识别依赖类
-4. decompile_class(path=jar, className=依赖类)  → 按需反编译
-```
+### 场景 1：浏览未知 JAR
 
-> **源码优先**：已有 `.java` 文件时直接读取，不重复反编译。已反编译结果缓存到 `{output_path}/decompiled/`。
-
-### 策略 B：调用链优先（从入口到 Sink）
+用户不了解 JAR 内容，需要快速了解结构。
 
 ```
-1. call_chain(path=jar, className=入口, methodName=方法, direction=callees, depth=5)
-                                    → 追踪完整调用路径
-2. decompile_class 反编译调用链中的关键类
-3. 对可疑节点深入分析（show_bytecode / show_cfg）
+analyze_directory(path=libs_dir)              → 统计归档规模
+list_classes(path=target.jar)                  → 浏览类清单和包结构
+list_classes(path=target.jar, package="com.x") → 聚焦特定包
+class_metadata(path=target.jar, className=..)  → 查看类的方法和注解
 ```
 
-跨 JAR 追踪时加 `scopePath={依赖目录}` `scopeRecursive=true`。
+### 场景 2：阅读反编译源码
 
-### 策略 C：搜索定位（关键字/模式驱动）
+用户知道要看的类，需要看到源码。
 
 ```
-1. search_in_jar(path=jar, query="关键字", type=string/method)
-                                    → 搜 SQL 片段、URL、密钥
-2. search_in_jar(path=jar, query="*Controller", type=type, queryMode=wildcard)
-                                    → 搜类名模式
-3. find_references(path=jar, className=危险类, kind=method, methodName=方法)
-                                    → 找谁调用了危险函数
+# 已有 .java → 直接读取，不反编译
+decompile_class(path=jar, className=目标类)   → 反编译为结构化源码
+decompile_advanced(path=jar, className=目标类, advancedLookup=true)
+                                               → 依赖复杂时用，更准确
+decompile_jar(path=jar, className=目标类, decompile=true)
+                                               → 快速预览
 ```
+
+批量导出：确定范围后用 `save_all_sources` 或 `decompile_directory`（自动走 CLI）。
+
+### 场景 3：追踪代码执行路径
+
+用户需要理解某个方法的调用关系。
+
+```
+call_chain(path=jar, className=类, methodName=方法, direction=callees)
+                                               → 追踪下游调用
+call_chain(..., direction=callers)             → 追踪上游调用者
+find_references(path=jar, kind=method, className=类, methodName=方法)
+                                               → 查找所有引用点
+method_overrides(path=jar, className=类, methodName=方法)
+                                               → 查看覆写链
+type_hierarchy(path=jar, className=类)         → 查看继承树
+```
+
+跨 JAR 时加 `scopePath={依赖目录}` `scopeRecursive=true` `indexPath=./.jd-mcp-duo/index.sqlite`。
+
+### 场景 4：关键字/模式搜索
+
+用户要搜索特定字符串、类名模式或资源文件。
+
+```
+search_in_jar(path=jar, query="关键词", type=string)
+                                               → 搜字符串常量
+search_in_jar(path=jar, query="*Controller", type=type, queryMode=wildcard)
+                                               → 搜类名模式
+search_in_jar(path=jar, query="*.xml", type=resource, queryMode=wildcard)
+                                               → 搜资源文件
+type_lookup(path=jar, query="*Service", queryMode=wildcard)
+                                               → 模糊查找类型
+```
+
+### 场景 5：分析依赖和版本
+
+用户需要识别 JAR 中的第三方依赖，用于 CVE 匹配或项目重建。
+
+```
+list_dependencies(path=jar, format=text)        → 提取 Maven 坐标
+build_skeleton(path=libs_dir, outputDir=..)     → 生成 pom.xml / build.gradle
+source_lookup(path=jar, className=..)           → 从 Maven Central 查原始源码
+```
+
+### 场景 6：调试和排错
+
+用户有异常日志，需要定位到源码行号。
+
+```
+resolve_stacktrace(path=jar, text="at com.x.Service.method(Service.java:42)")
+                                               → 解析堆栈到反编译行号
+show_bytecode(path=jar, className=类)          → 反编译结果可疑时看原始字节码
+show_cfg(path=jar, className=类, methodName=方法) → 理解复杂条件分支
+compiler_diagnostics(path=.java文件)            → 验证反编译结果是否有语法错误
+```
+
+### 场景 7：版本对比
+
+用户需要比较两个归档或两个引擎输出的差异。
+
+```
+compare_jars(jar1=v1/app.jar, jar2=v2/app.jar) → 归档差异（增/删/改）
+compare_class(leftPath=jar, className=类, leftEngine=cfr, rightEngine=vineflower)
+                                               → 不同引擎输出对比
+```
+
+### 通用原则
+
+- **源码优先**：已有 `.java` 文件直接读取，不反编译
+- **收窄范围**：先浏览结构再反编译，禁止对项目根做无界导出
+- **缓存复用**：已反编译到 `./jd-mcp-duo-output/` 的源码直接读
+- **批量优先**：确定范围后用批量工具（共享 JVM，效率高数倍）
 
 ---
 
