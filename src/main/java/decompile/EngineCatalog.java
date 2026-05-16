@@ -79,6 +79,7 @@ public final class EngineCatalog {
         addOption(options, "attemptTimeoutMillis", "integer", "Per-engine attempt timeout in milliseconds; 0 disables timeout.");
 
         switch (engine) {
+            case DecompilerEngines.JD_CORE_V1, DecompilerEngines.JD_CORE_V0 -> addJdCoreOptions(options);
             case DecompilerEngines.CFR -> addCfrOptions(options);
             case DecompilerEngines.PROCYON -> addProcyonOptions(options);
             case DecompilerEngines.FERNFLOWER -> addFernflowerOptions(options);
