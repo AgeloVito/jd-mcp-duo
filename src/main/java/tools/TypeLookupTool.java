@@ -86,6 +86,8 @@ public class TypeLookupTool implements MCPTool {
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
         int _total = matches.size();
         matches = JsonUtils.paginate(matches, offset, limit);
+        structured.addProperty("totalResults", _total);
+        structured.addProperty("offset", offset);
         structured.add("matches", matches);
         return ToolResults.structured(text.toString().trim(), structured);
     }

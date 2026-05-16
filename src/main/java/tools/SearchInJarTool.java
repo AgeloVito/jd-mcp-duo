@@ -97,6 +97,8 @@ public class SearchInJarTool implements MCPTool {
         structured.addProperty("resourceIndexedResults", resourceResults);
         int _total = results.size();
         results = JsonUtils.paginate(results, offset, limit);
+        structured.addProperty("totalResults", _total);
+        structured.addProperty("offset", offset);
         structured.add("results", results);
         if (results.isEmpty()) {
             text.append("No matching results found.");
