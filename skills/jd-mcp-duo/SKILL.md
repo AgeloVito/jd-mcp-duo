@@ -144,7 +144,7 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 | 建索引（跨归档搜索前） | `index_scope` | `path`, `scopePath`, `scopeRecursive`, `indexPath` |
 | 反编译整个归档 | `save_all_sources` | `path`, `output`；输出目录或 `.jar` 决定格式 |
 | 反编译目录下所有支持文件 | `decompile_directory` | `path`, `outputDir`, `recursive` |
-| 反编译指定类 | `decompile_class` / `decompile_advanced` | `path`, `className`, `engine`, `profile` |
+| 反编译指定类 | `decompile_class` / `decompile_advanced` | `path`, `className`, `engine` |
 | 搜索类/方法/字段/字符串/资源 | `search_in_jar` | `path`, `query`, `type`, `queryMode` |
 | 查找类型 | `type_lookup` | `path`, `query`, `queryMode` |
 | 列类清单 | `list_classes` | `path`, `package`, `includeInner`, `limit` |
@@ -161,11 +161,11 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 
 完整 30+ 个工具、全部参数、必填标记和关键默认值见 `references/tools.md`。查找工具的完整参数时，MCP 下用 `tools/list`，CLI 下用 `<tool> --help` 获取实时 schema。上述方式不可用或返回不清晰时，再加载 `references/tools.md`。
 
-## 反编译引擎与 Profile
+## 反编译引擎
 
 | 引擎 | 行为 |
 |------|------|
-| `auto` | 默认。APK/DEX 先尝试 native JADX；普通 class 先 JD-Core v1。如果 v1 输出有失败标记，则尝试 JD-Core v0 并做方法级 patch；仍不可用时按 profile fallback。 |
+| `auto` | 默认。APK/DEX 先尝试 native JADX；普通 class 先 JD-Core v1。如果 v1 输出有失败标记，则尝试 JD-Core v0 并做方法级 patch；仍不可用时按 JADX fallback。 |
 | `jd-core-v1` / `jd-core` / `jd` | 只要求 JD-Core v1 成功；失败时可尝试 v0 patch，但不会切外部引擎。 |
 | `jd-core-v0` / `v0` | 只用 JD-Core v0。 |
 | `vineflower` / `vf` | 现代 Java 准确性优先，安全审计和复杂语法常用。 |
@@ -174,84 +174,3 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 | `fernflower` / `ff` | JetBrains Fernflower，`accurate`/`debuggable` fallback 中会使用。 |
 | `jadx` | Android APK/DEX 首选；普通 class/JAR 也可显式尝试，但不一定最佳。 |
 
-Profile fallback 顺序：
-
-| Profile | fallback 顺序 |
-|---------|---------------|
-| `fast` | JD-Core v0（如未尝试） -> Vineflower -> CFR -> Procyon -> JADX |
-| `accurate` | JD-Core v0（如未尝试） -> Vineflower -> CFR -> Procyon -> Fernflower -> JADX |
-| `debuggable` | JD-Core v0（如未尝试） -> Procyon -> CFR -> Vineflower -> Fernflower -> JADX |
-
-`lineNumbers` 是元数据映射，不等于把数字写进 `.java`；要在源码文本中显示行号，用 `renderLineNumbers=decompiled|source|both`。`debuggable` profile 默认更偏向保留调试信息，普通输出不要主动加可见行号，除非用户要求。
-
-## 默认参数策略
-
-| 参数 | 默认策略 |
-|------|----------|
-| `--json` | CLI 需要结构化输出时加，用于解析结果；仅给用户看摘要文本时可省略。 |
-| `engine` | 默认不传，让工具使用 `auto`。用户指定引擎时严格尊重。 |
-| `profile` | 默认 `fast`；审计或结果可疑时用 `accurate`；调试行映射时用 `debuggable`。 |
-| `attemptTimeoutMillis` | 默认 30000，一般无需显式传；引擎频繁超时可调大；`0` 禁用超时 |
-| `releaseVersion` | 多版本 JAR 或 JMOD 需要时指定；否则用运行时版本。 |
-| `limit` / `classLimit` / `jarLimit` / `maxNodes` | 不要随意传 `0` 或超大值；部分批量工具中 `0` 是不限。 |
-| `scopePath` | 跨归档查询时必须传；目录 scope 建议同时传 `scopeRecursive=true`。**首次使用会扫描所有归档建索引**，stderr 显示 `[jd-mcp-duo] indexing: ...` 进度，注意转发给用户。 |
-| `indexPath` | 工具默认 `~/.jd-mcp-duo/index.sqlite`；优先主动传 `./.jd-mcp-duo/index.sqlite` 放项目目录下，隔离不同项目且不占系统盘。 |
-| `output` / `outputDir` / `saveTo` | 工具会创建目录并可能覆盖已有文件；代理必须先检查目标目录或选唯一输出目录。 |
-| `descriptor` | JVM descriptor 只用单引号字面量：`--descriptor='()V'`。构造器用 `--methodName='<init>'`。 |
-
-## 查询模式判定
-
-| 查询内容 | `queryMode` |
-|----------|-------------|
-| 普通类名、包名、方法名、文件名片段 | `plain` |
-| 用户使用 `*` 或 `?` | `wildcard` |
-| 用户明确说正则，或 query 明显是正则表达式 | `regex` |
-
-Java 包名里的 `.` 是普通文本，不要因此切到 `regex`。正则中匹配字面 `.` 写 `[.]`。
-
-## 工具选择：内置优先
-
-列类和查字节码时，优先使用 jd-mcp-duo 内置工具：
-
-| 意图 | 优先 | 降级（仅限内置工具不可用时） |
-|------|------|---------------------------|
-| 列出 JAR 中的类 | `list_classes` | `jar tf` |
-| 查看类字节码 | `show_bytecode` | `javap -c -p` |
-
-内置工具提供归一化类名、结构化元数据、多引擎回退，优于外部命令的原始输出。
-
-## 输出规范与安全边界
-
-- 已有源码优先直接读取，不反编译。
-- 优先探查结构、收窄范围后再批量导出。如果用户明确要求对项目根目录全量导出，按用户意愿执行。
-- 输出目录建议 `./jd-mcp-duo-output/{artifact-name}/`，或用户明确指定的目录。
-- 不要输出到 jd-mcp-duo 安装目录、`target/` 构建产物目录、系统临时根目录。
-- 如果目标目录已存在且非空，先复用已存在源码或询问是否覆盖；用户明确要求覆盖时再执行。
-- `PathSupport` 会拒绝空路径、控制字符和任何 `..` 路径段；遇到 `Invalid or unsafe path` 时要求用户给规范绝对路径或项目内相对路径。
-- 私有 Maven 仓库凭证只在用户明确提供时使用；不要把 token 写进答复。
-
-## 结果呈现规范
-
-| 工具类型 | 呈现方式 |
-|----------|----------|
-| 单类反编译 | 展示源码或关键片段，标注 `engineUsed`、`patched`、`metadataLimited`。 |
-| 批量导出 | 汇总成功/失败/跳过数量、输出目录、失败类前几项。 |
-| 搜索 | 列匹配项、类型、所属归档、签名或资源路径；控制数量。 |
-| 调用链 | 用缩进树或 Mermaid 展示方向、深度、截断状态。 |
-| 元数据/依赖 | 表格化，保留坐标、版本、类/方法签名。 |
-
-反编译结果**必须**标注来源，格式：`来源: 反编译（jd-mcp-duo <engine>, engineUsed=<实际引擎>）`。若结果经过 patch，追加 `, patched`。
-
-## 常见问题
-
-| 问题 | 处理 |
-|------|------|
-| 类找不到 | 先 `search_in_jar` 或 `type_lookup` 搜完整类名；注意内部名和点分名都可归一化。 |
-| 方法重载歧义 | 补 `descriptor`，只写参数和返回值，不写方法名。 |
-| 调用链/引用不完整 | 加 `scopePath`、`scopeRecursive=true`、项目本地 `indexPath`，并增大 `depth`/`maxNodes`。 |
-| 反编译质量差 | 改 `profile=accurate`，或指定 `engine=vineflower` / `cfr` 对比。 |
-| JD-Core v1 栈溢出或卡住 | 优先用 `auto` 和 `java -Xss10m`；仍失败时指定 `vineflower` 或 `cfr`。当前是线程级超时，不是子进程隔离，JVM 致命崩溃仍可能终止进程。 |
-| 输出里没有可见行号 | `lineNumbers=true` 只返回映射元数据；需要写进源码用 `renderLineNumbers=decompiled|source|both`。 |
-| 搜索无结果 | 确认 `type` 和 `queryMode`；通配符必须用 `queryMode=wildcard`。 |
-| MCP 初始化失败 | 只有握手、`initialized` 或 `tools/list` 失败才全局切 CLI；工具参数错误先修参数。 |
-| Missing required parameter | 查 `references/tools.md` 或 `<tool> --help` 补必填参数。 |

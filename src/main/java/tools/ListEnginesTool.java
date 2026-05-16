@@ -12,7 +12,7 @@ import com.google.gson.JsonObject;
 public class ListEnginesTool implements MCPTool {
     @Override
     public String getDescription() {
-        return "List available decompiler engines, aliases, and supported profiles.";
+        return "List available decompiler engines and aliases.";
     }
 
     @Override

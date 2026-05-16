@@ -58,15 +58,10 @@ public final class EngineCatalog {
         return aliases;
     }
 
-    private static void register(String engine, String description, String... profiles) {
+    private static void register(String engine, String description) {
         JsonObject json = new JsonObject();
         json.addProperty("engine", engine);
         json.addProperty("description", description);
-        JsonArray profileArray = new JsonArray();
-        for (String profile : profiles) {
-            profileArray.add(profile);
-        }
-        json.add("profiles", profileArray);
         json.add("aliases", aliasesFor(engine));
         json.add("defaultPreferences", mapJson(defaultPreferencesFor(engine)));
         json.add("lineNumberPreferences", mapJson(lineNumberPreferencesFor(engine)));

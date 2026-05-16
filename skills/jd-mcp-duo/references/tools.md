@@ -19,11 +19,10 @@
 - 嵌套依赖：`BOOT-INF/lib/`、`WEB-INF/lib/`、`APP-INF/lib/`、`lib/`、`libs/`、`dependencies/` 和根级归档。
 - EAR/KAR 嵌套模块会暴露为 primary classes；AAR 用 `classes.jar`；APK/DEX 会转换为 class map 并优先 native JADX。
 
-## 引擎、Profile 和输出元数据
+## 引擎和输出元数据
 
 - 常用别名：`jd-core`/`jd`、`v0`、`ff`、`vf`。
-- `auto`：APK/DEX 先 native JADX；普通 class 先 JD-Core v1，失败标记时用 JD-Core v0 方法级 patch，再按 profile fallback。
-- Profile：`fast`、`accurate`、`debuggable`。`debuggable` 在未显式传 `lineNumbers` 时默认开启行号元数据。
+- `auto`：APK/DEX 先 native JADX；普通 class 先 JD-Core v1，失败标记时用 JD-Core v0 方法级 patch，再按 JADX fallback。
 - `lineNumbers=true` 只返回 line mapping 元数据；要把行号写进源码文本，用 `renderLineNumbers=decompiled|source|both`。
 - 常见结构化反编译字段：`engineRequested`、`engineUsed`、`patched`、`fallbackUsed`、`metadataLimited`、`metadataRebuilt`、`nativeAndroid`、`methodPatches`、`attemptedEngines`、`engineFailures`、`warnings`、`source`、`declarations`、`references`、`hyperlinks`、`lineNumbers`。
 
@@ -51,20 +50,20 @@
 |------|------|------|------|
 | `index_scope` | CLI | 扫描 path 和 scopePath 下所有归档，建立或刷新 SQLite 跨归档索引。建索引有进度输出，后续查询秒回。 | `path*:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string` |
 | `help` | MCP/CLI | 列出可用工具和描述，可用于检查服务可用性。 | 无 |
-| `list_engines` | MCP/CLI | 列出反编译引擎、别名、profile 和默认引擎。 | 无 |
-| `describe_engine_options` | MCP/CLI | 查看指定引擎支持的选项、默认 profile 和 raw preferences。 | `engine*:string` |
+| `list_engines` | MCP/CLI | 列出反编译引擎、别名和默认引擎。 | 无 |
+| `describe_engine_options` | MCP/CLI | 查看指定引擎支持的选项和 raw preferences。 | `engine*:string` |
 
 ## 核心反编译
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
-| `decompile_class` | MCP | 从 `.class`、目录或归档中反编译单个类，返回源码和结构化元数据；可写到单个输出文件。 | `path*:string`, `className:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `preferences:object`, `output:string` |
-| `decompile_advanced` | MCP | `decompile_class` 的增强入口，默认走 auto、依赖查找和 JD-Core v1/v0 方法级 patch。 | `path*:string`, `className:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `preferences:object`, `output:string` |
-| `decompile_jar` | MCP | 分析归档或目录，并可用 `decompile=true` 预览指定类。 | `path*:string`, `className:string`, `limit:integer=20`, `decompile:boolean=false`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `advancedLookup:boolean=false`, `classpath:string|array`, `preferences:object` |
-| `save_all_sources` | CLI | 反编译输入归档或目录中的所有非内部类，保存为目录或 sources jar，并复制资源。 | `path*:string`, `output*:string`, `format:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `verbose:boolean=false` |
-| `decompile_directory` | CLI | 递归反编译目录下 `.class` 和支持归档，保持相对结构输出到目标目录，并复制资源。 | `path*:string`, `outputDir*:string`, `recursive:boolean=true`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `summaryOnly:boolean=false`, `fileLimit:integer=0`, `verbose:boolean=false` |
-| `batch_decompile` | CLI | 批量反编译目录或 class 根下的类；可输出目录或只返回摘要。 | `path*:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `limit:integer=0`, `summaryOnly:boolean=false`, `verbose:boolean=false`, `outputDir:string`, `preferences:object` |
-| `batch_decompile_jars` | CLI | 批量反编译目录中的支持归档；可限制归档数和每个归档类数。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `classLimit:integer=0`, `jarLimit:integer=0`, `summaryOnly:boolean=false`, `verbose:boolean=false`, `outputDir:string`, `preferences:object` |
+| `decompile_class` | MCP | 从 `.class`、目录或归档中反编译单个类，返回源码和结构化元数据；可写到单个输出文件。 | `path*:string`, `className:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `preferences:object`, `output:string` |
+| `decompile_advanced` | MCP | `decompile_class` 的增强入口，默认走 auto、依赖查找和 JD-Core v1/v0 方法级 patch。 | `path*:string`, `className:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `preferences:object`, `output:string` |
+| `decompile_jar` | MCP | 分析归档或目录，并可用 `decompile=true` 预览指定类。 | `path*:string`, `className:string`, `limit:integer=20`, `decompile:boolean=false`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `advancedLookup:boolean=false`, `classpath:string|array`, `preferences:object` |
+| `save_all_sources` | CLI | 反编译输入归档或目录中的所有非内部类，保存为目录或 sources jar，并复制资源。 | `path*:string`, `output*:string`, `format:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `verbose:boolean=false` |
+| `decompile_directory` | CLI | 递归反编译目录下 `.class` 和支持归档，保持相对结构输出到目标目录，并复制资源。 | `path*:string`, `outputDir*:string`, `recursive:boolean=true`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `summaryOnly:boolean=false`, `fileLimit:integer=0`, `verbose:boolean=false` |
+| `batch_decompile` | CLI | 批量反编译目录或 class 根下的类；可输出目录或只返回摘要。 | `path*:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `limit:integer=0`, `summaryOnly:boolean=false`, `verbose:boolean=false`, `outputDir:string`, `preferences:object` |
+| `batch_decompile_jars` | CLI | 批量反编译目录中的支持归档；可限制归档数和每个归档类数。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `renderLineNumbers:string`, `writeSidecarMetadata:boolean=false`, `advancedLookup:boolean=false`, `classpath:string|array`, `classLimit:integer=0`, `jarLimit:integer=0`, `summaryOnly:boolean=false`, `verbose:boolean=false`, `outputDir:string`, `preferences:object` |
 
 ## 目录、类清单与元数据
 
@@ -73,7 +72,7 @@
 | `analyze_directory` | MCP | 分析目录下支持归档，汇总类数量、大小和文件分布。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `limit:integer=200`, `offset:integer=0` |
 | `list_classes` | MCP | 列出归档或目录中的类名、内部名和包统计。 | `path*:string`, `package:string`, `releaseVersion:integer`, `includeInner:boolean=false`, `detailed:boolean=false`, `limit:integer=200`, `offset:integer=0` |
 | `class_metadata` | MCP | 查看类级元数据、方法、字段、注解、访问标志和字节码版本。 | `path*:string`, `className:string`, `releaseVersion:integer` |
-| `source_quality_report` | CLI | 抽样或全量反编译类，统计成功率、patch、fallback、失败原因和质量指标。 | `path*:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array`, `classLimit:integer=100` |
+| `source_quality_report` | CLI | 抽样或全量反编译类，统计成功率、patch、fallback、失败原因和质量指标。 | `path*:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array`, `classLimit:integer=100` |
 
 ## 搜索、符号与调用关系
 
@@ -106,8 +105,8 @@
 | `compare_jars` | MCP | 按条目大小和 CRC 比较两个归档，汇总新增、删除、修改类和资源。 | `jar1*:string`, `jar2*:string`, `detail:boolean=true` |
 | `compare_class` | MCP | 比较两个类，或同一类在两个引擎配置下的反编译源码。 | `leftPath*:string`, `rightPath:string`, `leftClassName:string`, `rightClassName:string`, `leftEngine:string`, `rightEngine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array` |
 | `compare_jd_core` | MCP | 比较同一类的 JD-Core v0 与 JD-Core v1 输出，是 `compare_class` 的便捷入口。 | `path*:string`, `className:string`, `rightPath:string`, `rightClassName:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array` |
-| `compiler_diagnostics` | MCP | 使用 Eclipse JDT 分析 Java 源码或反编译输出，返回错误和警告。 | `path*:string`, `className:string`, `engine:string`, `profile:string`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array` |
-| `remove_unnecessary_casts` | MCP | 使用 Eclipse JDT 分析并移除 Java 源码或反编译输出中的不必要强转。 | `path*:string`, `className:string`, `engine:string`, `profile:string`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array`, `saveTo:string` |
+| `compiler_diagnostics` | MCP | 使用 Eclipse JDT 分析 Java 源码或反编译输出，返回错误和警告。 | `path*:string`, `className:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array` |
+| `remove_unnecessary_casts` | MCP | 使用 Eclipse JDT 分析并移除 Java 源码或反编译输出中的不必要强转。 | `path*:string`, `className:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array`, `saveTo:string` |
 
 ## 参数坑位
 

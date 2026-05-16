@@ -13,7 +13,7 @@ import com.google.gson.JsonObject;
 public class DescribeEngineOptionsTool implements MCPTool {
     @Override
     public String getDescription() {
-        return "Describe supported options and profiles for a decompiler engine.";
+        return "Describe supported options for a decompiler engine.";
     }
 
     @Override
