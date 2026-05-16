@@ -57,7 +57,7 @@ class DecompilationJsonTest {
 
         DecompilationOutcome outcome = new DecompilationOutcome(
                 "demo/App",
-                DecompilerEngines.JD_CORE_DUO,
+                DecompilerEngines.JD_CORE_V1,
                 DecompilerEngines.JD_CORE_V1,
                 true,
                 false,

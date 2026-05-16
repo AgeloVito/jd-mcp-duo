@@ -12,24 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DecompilerOptionsTest {
     @Test
-    void testUnknownProfileIsRejected() {
-        JsonObject arguments = new JsonObject();
-        arguments.addProperty("profile", "mystery");
-
-        assertThrows(IllegalArgumentException.class, () -> DecompilerOptions.fromArguments(arguments, DecompilerEngines.AUTO));
-    }
-
-    @Test
-    void testJdCoreDuoAliasIsAccepted() {
-        JsonObject arguments = new JsonObject();
-        arguments.addProperty("engine", "jd-duo");
-
-        DecompilerOptions options = DecompilerOptions.fromArguments(arguments, DecompilerEngines.AUTO);
-
-        assertEquals(DecompilerEngines.JD_CORE_DUO, options.requestedEngine());
-    }
-
-    @Test
     void testJdCoreV0OnlyPreferencesAreIgnoredForV1AndWarned() {
         JsonObject arguments = new JsonObject();
         JsonObject preferences = new JsonObject();

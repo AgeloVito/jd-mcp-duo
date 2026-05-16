@@ -85,7 +85,7 @@ class DecompilationCacheTest {
     private record JsonFixture(DecompilerOptions options, DecompilationOutcome outcome) {
         JsonFixture() {
             this(
-                    new DecompilerOptions(DecompilerEngines.JD_CORE_V1, "fast", null, false, false, List.of(), Map.of(), DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS),
+                    new DecompilerOptions(DecompilerEngines.JD_CORE_V1, null, false, false, List.of(), Map.of(), DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS),
                     new DecompilationOutcome(
                             "demo/App",
                             DecompilerEngines.JD_CORE_V1,
