@@ -106,7 +106,7 @@ public record DecompilerOptions(
 
     private static Map<String, String> defaultsFor(String engine, boolean lineNumbers) {
         return switch (engine) {
-            case DecompilerEngines.JD_CORE_DUO, DecompilerEngines.JD_CORE_V0, DecompilerEngines.JD_CORE_V1 -> lineNumbers ? JDSettings.lineNumbers() : JDSettings.defaults();
+            case DecompilerEngines.JD_CORE_V0, DecompilerEngines.JD_CORE_V1 -> lineNumbers ? JDSettings.lineNumbers() : JDSettings.defaults();
             case DecompilerEngines.CFR -> lineNumbers ? CFRSettings.lineNumbers() : CFRSettings.defaults();
             case DecompilerEngines.FERNFLOWER -> lineNumbers ? FernflowerSettings.lineNumbers() : FernflowerSettings.defaults();
             case DecompilerEngines.VINEFLOWER -> lineNumbers ? VineflowerSettings.lineNumbers() : VineflowerSettings.defaults();

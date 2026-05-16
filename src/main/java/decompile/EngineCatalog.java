@@ -29,7 +29,6 @@ public final class EngineCatalog {
     private static final Map<String, JsonObject> ENGINES = new LinkedHashMap<>();
 
     static {
-        register(DecompilerEngines.JD_CORE_DUO, "JD-Core v1 with JD-Core v0 method patching and JD-only fallback", "fast", "accurate", "debuggable");
         register(DecompilerEngines.JD_CORE_V1, "Default analytical JD engine", "fast", "accurate", "debuggable");
         register(DecompilerEngines.JD_CORE_V0, "Pattern-matching JD engine, useful as fallback and patch source", "fast");
         register(DecompilerEngines.CFR, "Broadly compatible decompiler with stable output", "fast", "accurate");
@@ -99,7 +98,6 @@ public final class EngineCatalog {
         addOption(options, "attemptTimeoutMillis", "integer", "Per-engine attempt timeout in milliseconds; 0 disables timeout.");
 
         switch (engine) {
-            case DecompilerEngines.JD_CORE_DUO, DecompilerEngines.JD_CORE_V0, DecompilerEngines.JD_CORE_V1 -> addJdCoreOptions(options);
             case DecompilerEngines.CFR -> addCfrOptions(options);
             case DecompilerEngines.PROCYON -> addProcyonOptions(options);
             case DecompilerEngines.FERNFLOWER -> addFernflowerOptions(options);
@@ -270,7 +268,6 @@ public final class EngineCatalog {
 
     private static Map<String, String> preferencesFor(String engine, boolean lineNumbers) {
         return switch (engine) {
-            case DecompilerEngines.JD_CORE_DUO, DecompilerEngines.JD_CORE_V0, DecompilerEngines.JD_CORE_V1 -> lineNumbers ? JDSettings.lineNumbers() : JDSettings.defaults();
             case DecompilerEngines.CFR -> lineNumbers ? CFRSettings.lineNumbers() : CFRSettings.defaults();
             case DecompilerEngines.PROCYON -> lineNumbers ? MapDecompilerSettings.lineNumbers() : MapDecompilerSettings.defaults();
             case DecompilerEngines.FERNFLOWER -> lineNumbers ? FernflowerSettings.lineNumbers() : FernflowerSettings.defaults();

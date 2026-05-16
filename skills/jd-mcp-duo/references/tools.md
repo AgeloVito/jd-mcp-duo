@@ -21,10 +21,8 @@
 
 ## 引擎、Profile 和输出元数据
 
-- 引擎：`auto`、`jd-core-duo`、`jd-core-v1`、`jd-core-v0`、`cfr`、`procyon`、`fernflower`、`vineflower`、`jadx`。
-- 常用别名：`jd-duo`/`duo`、`jd-core`/`jd`、`v0`、`ff`、`vf`。
+- 常用别名：`jd-core`/`jd`、`v0`、`ff`、`vf`。
 - `auto`：APK/DEX 先 native JADX；普通 class 先 JD-Core v1，失败标记时用 JD-Core v0 方法级 patch，再按 profile fallback。
-- `jd-core-duo`：只使用 JD-Core v1/v0 和 patch，不切到 CFR/Vineflower/JADX。
 - Profile：`fast`、`accurate`、`debuggable`。`debuggable` 在未显式传 `lineNumbers` 时默认开启行号元数据。
 - `lineNumbers=true` 只返回 line mapping 元数据；要把行号写进源码文本，用 `renderLineNumbers=decompiled|source|both`。
 - 常见结构化反编译字段：`engineRequested`、`engineUsed`、`patched`、`fallbackUsed`、`metadataLimited`、`metadataRebuilt`、`nativeAndroid`、`methodPatches`、`attemptedEngines`、`engineFailures`、`warnings`、`source`、`declarations`、`references`、`hyperlinks`、`lineNumbers`。

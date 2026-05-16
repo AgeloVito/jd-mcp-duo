@@ -96,8 +96,6 @@ public final class DecompilerSupport {
                                                     DecompilerOptions options,
                                                     String engine,
                                                     boolean patched) throws Exception {
-        if (DecompilerEngines.JD_CORE_DUO.equals(engine)) {
-            return decompileJdCoreDuo(loader, resolver, classLocation, options);
         }
         if (DecompilerEngines.JD_CORE_V1.equals(engine)) {
             return decompileJdCoreV1WithPatch(loader, resolver, classLocation, options);
@@ -118,57 +116,6 @@ public final class DecompilerSupport {
         return outcome(options, classLocation.internalName(), options.requestedEngine(), engine, patched, false, false, false, false, List.of(engine), Map.of(), result);
     }
 
-    static DecompilationOutcome decompileJdCoreDuo(Loader loader,
-                                                   ClassSourceResolver resolver,
-                                                   ClassLocation classLocation,
-                                                   DecompilerOptions options) throws Exception {
-        List<String> attempted = new ArrayList<>();
-        LinkedHashMap<String, String> failures = new LinkedHashMap<>();
-
-        DecompilationResult v1Result = attemptEngine(
-                loader,
-                classLocation,
-                options,
-                DecompilerEngines.JD_CORE_V1,
-                attempted,
-                failures,
-                true
-        );
-        if (v1Result != null && DecompilerAttemptPolicy.isUsableOutput(v1Result.getDecompiledOutput())) {
-            return outcome(options, classLocation.internalName(), options.requestedEngine(), DecompilerEngines.JD_CORE_V1, false, false, false, false, false, attempted, failures, v1Result);
-        }
-
-        DecompilationResult v0Result = attemptEngine(
-                loader,
-                classLocation,
-                options,
-                DecompilerEngines.JD_CORE_V0,
-                attempted,
-                failures,
-                true
-        );
-        if (v1Result != null && v0Result != null) {
-            DecompilationOutcome patchedOutcome = patchV1Result(
-                    v1Result,
-                    v0Result,
-                    classLocation.internalName(),
-                    options.requestedEngine(),
-                    resolver == null ? null : resolver.primaryContextUri(),
-                    resolver == null ? List.of() : resolver.parserClasspathEntries(),
-                    attempted,
-                    failures,
-                    options.preferenceWarningsForAttempts(attempted)
-            );
-            if (patchedOutcome != null) {
-                return patchedOutcome;
-            }
-        }
-        if (v0Result != null && DecompilerAttemptPolicy.isUsableOutput(v0Result.getDecompiledOutput())) {
-            return outcome(options, classLocation.internalName(), options.requestedEngine(), DecompilerEngines.JD_CORE_V0, false, true, false, false, false, attempted, failures, v0Result);
-        }
-
-        throw new IOException("JD-Core duo failed for " + classLocation.displayName() + ": " + failures);
-    }
 
     private static DecompilationOutcome decompileJdCoreV1WithPatch(Loader loader,
                                                                    ClassSourceResolver resolver,

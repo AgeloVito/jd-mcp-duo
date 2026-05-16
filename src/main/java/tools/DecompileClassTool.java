@@ -37,7 +37,7 @@ public class DecompileClassTool implements MCPTool {
         JsonObject properties = new JsonObject();
         SchemaSupport.addString(properties, "path", "Path to a .class file, directory, or supported archive");
         SchemaSupport.addString(properties, "className", "Class name when path points to a directory or archive (e.g. com.example.Main)");
-        SchemaSupport.addString(properties, "engine", "Decompiler engine: auto, jd-core-duo, jd-core-v1, jd-core-v0, cfr, procyon, fernflower, vineflower, jadx");
+        SchemaSupport.addString(properties, "engine", "Decompiler engine: auto, jd-core-v1, jd-core-v0, cfr, procyon, fernflower, vineflower, jadx");
         SchemaSupport.addString(properties, "profile", "Decompilation profile: fast, accurate, or debuggable");
         SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime");
         SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout");

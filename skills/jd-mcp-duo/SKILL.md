@@ -166,7 +166,6 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 | 引擎 | 行为 |
 |------|------|
 | `auto` | 默认。APK/DEX 先尝试 native JADX；普通 class 先 JD-Core v1。如果 v1 输出有失败标记，则尝试 JD-Core v0 并做方法级 patch；仍不可用时按 profile fallback。 |
-| `jd-core-duo` / `jd-duo` / `duo` | 只走 JD-Core v1/v0 和方法级 patch，不切到 CFR/Vineflower/JADX，适合复现 jd-gui-duo 风格。 |
 | `jd-core-v1` / `jd-core` / `jd` | 只要求 JD-Core v1 成功；失败时可尝试 v0 patch，但不会切外部引擎。 |
 | `jd-core-v0` / `v0` | 只用 JD-Core v0。 |
 | `vineflower` / `vf` | 现代 Java 准确性优先，安全审计和复杂语法常用。 |

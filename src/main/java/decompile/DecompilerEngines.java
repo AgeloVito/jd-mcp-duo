@@ -8,7 +8,6 @@ import java.util.Map;
 
 public final class DecompilerEngines {
     public static final String AUTO = "auto";
-    public static final String JD_CORE_DUO = "jd-core-duo";
     public static final String JD_CORE_V0 = StandardTransformers.Decompilers.ENGINE_JD_CORE_V0;
     public static final String JD_CORE_V1 = StandardTransformers.Decompilers.ENGINE_JD_CORE_V1;
     public static final String CFR = StandardTransformers.Decompilers.ENGINE_CFR;
@@ -21,9 +20,6 @@ public final class DecompilerEngines {
 
     static {
         ALIASES.put("auto", AUTO);
-        ALIASES.put("jd-core-duo", JD_CORE_DUO);
-        ALIASES.put("jd-duo", JD_CORE_DUO);
-        ALIASES.put("duo", JD_CORE_DUO);
         ALIASES.put("jd-core", JD_CORE_V1);
         ALIASES.put("jd-core-v1", JD_CORE_V1);
         ALIASES.put("jdcore", JD_CORE_V1);
