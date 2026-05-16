@@ -50,10 +50,6 @@ public final class PersistentScopeIndex {
 
     public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive,
                                             Path indexPath, boolean buildIfMissing) throws Exception {
-        if (isBuildDisabled() && buildIfMissing) {
-            throw new IOException("Index building is disabled in this mode. "
-                    + "Use CLI to build the index with index_scope first.");
-        }
         List<Path> inputs = ScopeSupport.collectScopeInputs(primaryPath, scopePath, recursive);
         Path databasePath = indexPath != null ? indexPath.toAbsolutePath().normalize() : defaultDatabasePath();
         Files.createDirectories(databasePath.getParent());
@@ -910,8 +906,8 @@ public final class PersistentScopeIndex {
                         continue;
                     }
 
-                    if (!buildIfMissing) {
-                        throw new IOException("Index missing or out of date. Run first:\n"
+                    if (!buildIfMissing || isBuildDisabled()) {
+                        throw new IOException("Index missing or out of date. Build it with:\n"
                                 + "  index_scope --path=" + normalized
                                 + " --indexPath=" + databasePath);
                     }
