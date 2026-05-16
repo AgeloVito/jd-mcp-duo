@@ -49,8 +49,8 @@ public class ResolveSymbolTool implements MCPTool {
                         ? JsonUtils.getPath(arguments, "scopePath")
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
-                !noBuild,
-                indexPath
+                indexPath,
+                !noBuild
         );
         String className = JsonUtils.getString(arguments, "className", null);
         String fieldName = JsonUtils.getString(arguments, "fieldName", null);

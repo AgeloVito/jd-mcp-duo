@@ -55,8 +55,8 @@ public class TypeLookupTool implements MCPTool {
                         ? JsonUtils.getPath(arguments, "scopePath")
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
-                !noBuild,
-                indexPath
+                indexPath,
+                !noBuild
         );
         JsonArray matches = new JsonArray();
         StringBuilder text = new StringBuilder();

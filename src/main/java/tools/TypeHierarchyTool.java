@@ -51,8 +51,8 @@ public class TypeHierarchyTool implements MCPTool {
                         ? JsonUtils.getPath(arguments, "scopePath")
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
-                !noBuild,
-                indexPath
+                indexPath,
+                !noBuild
         );
         String internalName = JsonUtils.getString(arguments, "className", "").replace('.', '/');
         var matches = scope.resolveClasses(internalName);

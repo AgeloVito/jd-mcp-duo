@@ -55,8 +55,8 @@ public class MethodOverridesTool implements MCPTool {
                         ? JsonUtils.getPath(arguments, "scopePath")
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
-                !noBuild,
-                indexPath
+                indexPath,
+                !noBuild
         );
         String owner = JsonUtils.getString(arguments, "className", "").replace('.', '/');
         String methodName = JsonUtils.getString(arguments, "methodName", "");
