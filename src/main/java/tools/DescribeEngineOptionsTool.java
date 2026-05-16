@@ -39,18 +39,6 @@ public class DescribeEngineOptionsTool implements MCPTool {
         text.append("Options for ").append(structured.get("engine").getAsString()).append('\n');
         text.append(structured.get("description").getAsString()).append('\n');
 
-        JsonArray profiles = structured.getAsJsonArray("profiles");
-        if (profiles != null && !profiles.isEmpty()) {
-            text.append("\nProfiles: ");
-            for (int i = 0; i < profiles.size(); i++) {
-                if (i > 0) {
-                    text.append(", ");
-                }
-                text.append(profiles.get(i).getAsString());
-            }
-            text.append('\n');
-        }
-
         if (structured.has("aliases")) {
             text.append("\nAliases: ");
             JsonArray aliases = structured.getAsJsonArray("aliases");
