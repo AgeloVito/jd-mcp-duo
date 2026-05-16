@@ -9,6 +9,7 @@ import decompile.DecompilerOptions;
 import model.MCPTool;
 import model.ToolResult;
 import support.JsonUtils;
+import support.ProgressReporter;
 import support.SchemaSupport;
 import support.ToolResults;
 import com.google.gson.JsonArray;
@@ -46,6 +47,12 @@ public class SourceQualityReportTool implements MCPTool {
 
     @Override
     public ToolResult execute(JsonObject arguments) throws Exception {
+        return execute(arguments, new ProgressReporter(null, "source_quality_report"));
+    }
+
+    @Override
+    public ToolResult execute(JsonObject arguments, ProgressReporter reporter) throws Exception {
+        reporter.report(0, 0);
         Path path = JsonUtils.getRequiredPath(arguments, "path");
         int classLimit = JsonUtils.getInt(arguments, "classLimit", 100);
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
@@ -68,6 +75,8 @@ public class SourceQualityReportTool implements MCPTool {
             JsonArray failures = new JsonArray();
             JsonArray classResults = new JsonArray();
 
+            int total = classes.size();
+            int idx = 0;
             for (ClassLocation location : classes) {
                 JsonObject classResult = new JsonObject();
                 classResult.addProperty("className", location.displayName());
@@ -105,7 +114,9 @@ public class SourceQualityReportTool implements MCPTool {
                     classResult.addProperty("failureCategory", failureCategory);
                 }
                 classResults.add(classResult);
+                reporter.tick(++idx, total, location.displayName());
             }
+            reporter.done();
 
             JsonObject structured = new JsonObject();
             structured.addProperty("total", classes.size());
