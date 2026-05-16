@@ -42,9 +42,7 @@ public final class ArchiveIndexCache {
     public static String fingerprint(Path path) throws IOException {
         Path normalized = path.toAbsolutePath().normalize();
         if (Files.isRegularFile(normalized)) {
-            long lastModified = Files.getLastModifiedTime(normalized).toMillis();
-            long size = Files.size(normalized);
-            return normalized + ":" + size + ":" + lastModified;
+            return FingerprintSupport.sha256Hex(Files.readAllBytes(normalized));
         }
 
         MessageDigest digest = FingerprintSupport.newSha256();
@@ -56,6 +54,6 @@ public final class ArchiveIndexCache {
                 FingerprintSupport.updateDigest(digest, Files.getLastModifiedTime(child).toMillis());
             }
         }
-        return normalized + ":" + FingerprintSupport.toHex(digest.digest());
+        return FingerprintSupport.toHex(digest.digest());
     }
 }

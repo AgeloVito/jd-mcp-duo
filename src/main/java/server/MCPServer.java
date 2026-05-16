@@ -72,6 +72,7 @@ public class MCPServer {
 
         // JAR analysis tools
         tools.put("decompile_jar", new DecompileJarTool());
+        tools.put("index_scope", new IndexScopeTool());
         tools.put("list_classes", new ListClassesTool());
         tools.put("search_in_jar", new SearchInJarTool());
         tools.put("compare_jars", new CompareJarsTool());

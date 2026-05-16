@@ -25,16 +25,27 @@ public final class PersistentScopeIndex {
     }
 
     public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive) throws Exception {
-        return open(primaryPath, scopePath, recursive, null);
+        return open(primaryPath, scopePath, recursive, null, true);
     }
 
     public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive, Path indexPath) throws Exception {
+        return open(primaryPath, scopePath, recursive, indexPath, true);
+    }
+
+    public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive,
+                                            Path indexPath, boolean buildIfMissing) throws Exception {
         List<Path> inputs = ScopeSupport.collectScopeInputs(primaryPath, scopePath, recursive);
         Path databasePath = indexPath != null ? indexPath.toAbsolutePath().normalize() : defaultDatabasePath();
         Files.createDirectories(databasePath.getParent());
         initializeDatabase(databasePath);
-        IndexingResult result = ensureIndexed(databasePath, inputs);
+        IndexingResult result = ensureIndexed(databasePath, inputs, buildIfMissing);
         if (result.indexedInputs().isEmpty()) {
+            if (!buildIfMissing) {
+                throw new IOException("Index not built or out of date. Build it first with: "
+                        + "index_scope --path=" + primaryPath
+                        + (scopePath != null ? " --scopePath=" + scopePath : "")
+                        + " --indexPath=" + databasePath);
+            }
             String details = result.failures().stream()
                     .map(failure -> failure.sourcePath() + ": " + failure.message())
                     .reduce((left, right) -> left + "; " + right)
@@ -858,6 +869,10 @@ public final class PersistentScopeIndex {
     }
 
     private static IndexingResult ensureIndexed(Path databasePath, List<Path> inputs) throws Exception {
+        return ensureIndexed(databasePath, inputs, true);
+    }
+
+    private static IndexingResult ensureIndexed(Path databasePath, List<Path> inputs, boolean buildIfMissing) throws Exception {
         List<Path> indexedInputs = new ArrayList<>();
         List<IndexFailure> failures = new ArrayList<>();
         int total = inputs.size();
@@ -873,6 +888,11 @@ public final class PersistentScopeIndex {
                         indexedInputs.add(normalized);
                         System.err.printf("\r[jd-mcp-duo] indexing: scanned %d/%d, %d new — %s", ++idx, total, newCount, normalized.getFileName());
                         continue;
+                    }
+
+                    if (!buildIfMissing) {
+                        throw new IOException("Index out of date: " + normalized.getFileName() + ". "
+                                + "Rebuild with index_scope first.");
                     }
 
                     System.err.printf("\r[jd-mcp-duo] indexing: building index for %s...", normalized.getFileName());

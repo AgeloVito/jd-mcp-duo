@@ -86,6 +86,17 @@ list_classes(path=target.jar, package="com.x")   -> 聚焦指定包命名空间
 class_metadata(path=target.jar, className=..)    -> 查看类、方法、字段、注解等元信息
 ```
 
+### 跨归档搜索准备 — 先建索引
+
+跨 JAR 搜索（`search_in_jar`、`call_chain` 等）**必须先建索引**，否则查询阻塞：
+
+```text
+index_scope(path=app.jar, scopePath=./lib, scopeRecursive=true)
+                                               -> 建索引，有进度条，后续查询秒回
+search_in_jar(path=app.jar, query="...", type=string, noBuild=true)
+                                               -> 只查已有索引，不建
+```
+
 ### 反编译源码审阅
 
 ```text
@@ -148,6 +159,7 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 
 | 用户意图 | 工具 | 关键参数 |
 |----------|------|----------|
+| 建索引（跨归档搜索前） | `index_scope` | `path`, `scopePath`, `scopeRecursive`, `indexPath` |
 | 反编译整个归档 | `save_all_sources` | `path`, `output`；输出目录或 `.jar` 决定格式 |
 | 反编译目录下所有支持文件 | `decompile_directory` | `path`, `outputDir`, `recursive` |
 | 反编译指定类 | `decompile_class` / `decompile_advanced` | `path`, `className`, `engine`, `profile` |

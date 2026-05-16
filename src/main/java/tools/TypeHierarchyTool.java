@@ -32,6 +32,7 @@ public class TypeHierarchyTool implements MCPTool {
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
         SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
+        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", false);
         SchemaSupport.addInteger(properties, "depth", "Maximum traversal depth", 8);
         SchemaSupport.addInteger(properties, "maxNodes", "Maximum nodes returned", 256);
         SchemaSupport.require(schema, "path");
@@ -43,12 +44,14 @@ public class TypeHierarchyTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) throws Exception {
         long startedAt = System.nanoTime();
         Path indexPath = JsonUtils.getPath(arguments, "indexPath");
+        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", false);
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
                 arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
                         ? JsonUtils.getPath(arguments, "scopePath")
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
+                !noBuild,
                 indexPath
         );
         String internalName = JsonUtils.getString(arguments, "className", "").replace('.', '/');
