@@ -106,7 +106,10 @@ public class ListClassesTool implements MCPTool {
             if (totalCount > classes.size()) {
                 text.append("... ").append(totalCount - classes.size()).append(" more classes not shown\n");
             }
+            int _total = classArray.size();
             classArray = JsonUtils.paginate(classArray, offset, limit);
+            structured.addProperty("totalResults", _total);
+            structured.addProperty("offset", offset);
             structured.add("classes", classArray);
             if (detailed) {
                 JsonObject packages = new JsonObject();

@@ -84,6 +84,7 @@ public class TypeLookupTool implements MCPTool {
         structured.addProperty("queryMillis", (System.nanoTime() - startedAt) / 1_000_000L);
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
+        int _total = matches.size();
         matches = JsonUtils.paginate(matches, offset, limit);
         structured.add("matches", matches);
         return ToolResults.structured(text.toString().trim(), structured);

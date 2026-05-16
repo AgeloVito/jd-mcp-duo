@@ -108,7 +108,10 @@ public class ListDependenciesTool implements MCPTool {
         structured.addProperty("path", path.toString());
         structured.addProperty("totalCount", totalDeps);
         structured.addProperty("showing", shown.size());
-        jsonDeps = JsonUtils.paginate(jsonDeps, offset, limit);
+        int _total = jsonDeps.size();
+            jsonDeps = JsonUtils.paginate(jsonDeps, offset, limit);
+        structured.addProperty("totalResults", _total);
+        structured.addProperty("offset", offset);
         structured.add("dependencies", jsonDeps);
 
         String text = shown.size() + " embedded dependencies found in " + path;

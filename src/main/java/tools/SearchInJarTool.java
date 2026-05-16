@@ -95,6 +95,7 @@ public class SearchInJarTool implements MCPTool {
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
         structured.addProperty("resourceIndexedResults", resourceResults);
+        int _total = results.size();
         results = JsonUtils.paginate(results, offset, limit);
         structured.add("results", results);
         if (results.isEmpty()) {

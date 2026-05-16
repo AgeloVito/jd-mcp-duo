@@ -94,7 +94,10 @@ public class AnalyzeDirectoryTool implements MCPTool {
             structured.addProperty("archiveCount", archives.size());
             structured.addProperty("totalClasses", totalClasses);
             structured.addProperty("totalSize", totalSize);
+            int _total = archives.size();
             archives = JsonUtils.paginate(archives, offset, limit);
+            structured.addProperty("totalResults", _total);
+            structured.addProperty("offset", offset);
             structured.add("archives", archives);
             return ToolResults.structured(text.toString().trim(), structured);
         }
