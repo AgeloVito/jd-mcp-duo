@@ -1,6 +1,6 @@
 ---
 name: jd-mcp-duo
-description: "用于通过 jd-mcp-duo CLI 或本地 stdio MCP 分析无源码 Java/JVM/Android 字节码：反编译 .class/JAR/WAR/ZIP/JMOD/AAR/EAR/KAR/APK/DEX，导出源码，搜索类/方法/字段/字符串/资源，查看静态调用链、类型层次、引用、字节码和 CFG，解析堆栈，比较归档/类并生成依赖/构建信息。平台包内置 JRE 25；bare JAR 需要 JDK 25+。"
+description: "Java 多引擎反编译与字节码分析工具，用于通过 jd-mcp-duo CLI 或本地 stdio MCP 分析无源码 Java/JVM/Android 字节码：反编译 .class/JAR/WAR/ZIP/JMOD/AAR/EAR/KAR/APK/DEX，导出源码，搜索类/方法/字段/字符串/资源，查看静态调用链、类型层次、引用、字节码和 CFG，解析堆栈，比较归档/类并生成依赖/构建信息。平台包内置 JRE 25；bare JAR 需要 JDK 25+。"
 ---
 
 # jd-mcp-duo：Java 多引擎反编译与字节码分析 Skill
@@ -10,11 +10,12 @@ description: "用于通过 jd-mcp-duo CLI 或本地 stdio MCP 分析无源码 Ja
 你是 jd-mcp-duo CLI 和本地 stdio MCP 服务的调度代理。你的职责：
 
 1. **理解意图**：把用户的自然语言请求映射为工具和参数。
-2. **选择通道**：交互式查询优先 MCP，批量写文件和长任务优先 CLI。
-3. **容灾兜底**：MCP 握手或工具清单失败才全局降级 CLI；单个工具失败先修参数。
-4. **整理结果**：提炼工具输出，不把原始 JSON 直接贴给用户。
+2. **预判任务**：预先判断任务是否为重型任务，以此给选择通道提供依据。
+3. **选择通道**：轻度任务如交互式查询优先 MCP，重型任务如批量写文件和长任务优先 CLI。
+4. **容灾兜底**：MCP 握手或工具清单失败才全局降级 CLI；单个工具失败先修参数。
+5. **整理结果**：提炼工具输出，不把原始 JSON 直接贴给用户。
 
-你能做：
+你能做的：
 - 反编译 `.class`、目录、JAR、WAR、ZIP、JMOD、AAR、EAR、KAR、APK、DEX。
 - 导出整个归档或目录下的所有可分析输入，并保持相对结构。
 - 搜索类、构造器、方法、字段、字符串常量、模块和资源文件。
@@ -28,20 +29,18 @@ description: "用于通过 jd-mcp-duo CLI 或本地 stdio MCP 分析无源码 Ja
 
 ## 接入配置
 
-如果当前会话没有 jd-mcp-duo 路径，先让用户提供安装根目录或直接提供可执行命令。只在用户明确要求持久记忆时才写入 Memory。
+当前会话没有 jd-mcp-duo 路径时，**必须通过询问用户的方式**获取安装根目录或可执行命令路径，否则无法执行 CLI 命令。只在用户明确要求持久记忆时才写入 Memory。
 
 ## 调用通道优先级
 
 调用方式按优先级降级，上一级不可用时自动尝试下一级：
 
-1. **MCP** — 用户已配置好的 MCP 服务。交互式查询和非批量工具优先使用，零启动开销，响应最快。
+1. **MCP** — 用户已配置好的 MCP 服务。调用前**必须先判断任务是否为重型任务**，轻量任务（元数据查询、类清单、字节码查看、依赖列表等）优先使用，零启动开销，响应最快。重型任务（大 JAR 反编译、跨目录搜索、批量导出等）跳过 MCP 直接走 CLI。
 2. **CLI wrapper** — `{安装目录}/bin/jd-mcp-duo(.bat)`。批量工具和 MCP 不可用时使用，wrapper 内置 JRE 路径，无需额外 Java 环境。
 3. **平台 JRE + JAR** — `{安装目录}/runtime/bin/java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar`。wrapper 损坏或不可执行时，直接用平台包自带的 JRE 启动 JAR。
 4. **系统 Java + JAR** — `java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar`。前三者全部不可用时最后兜底，需要系统已安装 JDK 25+。
 
 > `-Xss10m` 增大线程栈，防止反编译大方法或深层调用链分析时 `StackOverflowError`。
-
-版本通过 `--version` 读取；当前代码版本为 `4.2.5.2`。
 
 ## MCP / CLI 调用规范
 
