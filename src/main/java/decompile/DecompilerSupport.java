@@ -92,7 +92,6 @@ public final class DecompilerSupport {
                                                     DecompilerOptions options,
                                                     String engine,
                                                     boolean patched) throws Exception {
-        }
         if (DecompilerEngines.JD_CORE_V1.equals(engine)) {
             return decompileJdCoreV1WithPatch(loader, resolver, classLocation, options);
         }
