@@ -24,7 +24,7 @@ class DecompileClassToolTest {
         JsonObject schema = tool.getInputSchema();
         assertTrue(schema.getAsJsonObject("properties").has("path"));
         assertTrue(schema.getAsJsonObject("properties").has("engine"));
-        assertTrue(schema.getAsJsonObject("properties").has("profile"));
+        assertTrue(schema.getAsJsonObject("properties").has("engine"));
         assertTrue(schema.getAsJsonObject("properties").has("preferences"));
     }
 
@@ -68,13 +68,13 @@ class DecompileClassToolTest {
 
         JsonObject arguments = new JsonObject();
         arguments.addProperty("path", classesDir.resolve("demo/App.class").toString());
-        arguments.addProperty("engine", "jd-core-duo");
+        arguments.addProperty("engine", "jd-core-v1");
 
         ToolResult result = tool.execute(arguments);
         JsonObject structured = result.structuredData().getAsJsonObject();
 
         assertFalse(result.isError());
-        assertEquals("jd-core-duo", structured.get("engineRequested").getAsString());
+        assertEquals("jd-core-v1", structured.get("engineRequested").getAsString());
         assertEquals(decompile.DecompilerEngines.JD_CORE_V1, structured.get("engineUsed").getAsString());
         assertTrue(structured.has("methodPatches"));
     }

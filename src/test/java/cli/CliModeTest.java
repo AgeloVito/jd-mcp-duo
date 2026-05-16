@@ -29,7 +29,7 @@ class CliModeTest {
         assertTrue(help.contains("decompile_directory --path=/path/to/input --outputDir=/path/to/out"));
         assertTrue(help.contains("decompile_directory --path=/path/to/input --outputDir=/path/to/out --engine=jadx"));
         assertTrue(help.contains("java -Xss10m -jar") && help.contains(".jar list_engines"));
-        assertTrue(help.contains("decompile_class --path=/path/to/app.jar --className=com.example.Main --engine=jd-core-duo"));
+        assertTrue(help.contains("decompile_class --path=/path/to/app.jar --className=com.example.Main --engine=vineflower"));
         assertTrue(help.contains("compare_jd_core --path=/path/to/app.jar --className=com.example.Main"));
     }
 
