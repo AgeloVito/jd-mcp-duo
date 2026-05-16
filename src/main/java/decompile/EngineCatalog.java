@@ -250,6 +250,7 @@ public final class EngineCatalog {
 
     private static Map<String, String> preferencesFor(String engine, boolean lineNumbers) {
         return switch (engine) {
+            case DecompilerEngines.JD_CORE_V1, DecompilerEngines.JD_CORE_V0 -> lineNumbers ? JDSettings.lineNumbers() : JDSettings.defaults();
             case DecompilerEngines.CFR -> lineNumbers ? CFRSettings.lineNumbers() : CFRSettings.defaults();
             case DecompilerEngines.PROCYON -> lineNumbers ? MapDecompilerSettings.lineNumbers() : MapDecompilerSettings.defaults();
             case DecompilerEngines.FERNFLOWER -> lineNumbers ? FernflowerSettings.lineNumbers() : FernflowerSettings.defaults();
