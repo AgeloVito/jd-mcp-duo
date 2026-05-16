@@ -68,7 +68,7 @@ class DecompileClassToolTest {
 
         JsonObject arguments = new JsonObject();
         arguments.addProperty("path", classesDir.resolve("demo/App.class").toString());
-        arguments.addProperty("engine", decompile.DecompilerEngines.JD_CORE_V1);
+        arguments.addProperty("engine", "jd-core-v1");
 
         ToolResult result = tool.execute(arguments);
         JsonObject structured = result.structuredData().getAsJsonObject();
@@ -89,7 +89,7 @@ class DecompileClassToolTest {
         preferences.addProperty(jd.core.preferences.Preferences.OMIT_THIS_PREFIX, "true");
         JsonObject arguments = new JsonObject();
         arguments.addProperty("path", classesDir.resolve("demo/App.class").toString());
-        arguments.addProperty("engine", decompile.DecompilerEngines.JD_CORE_V1);
+        arguments.addProperty("engine", "jd-core-v1");
         arguments.add("preferences", preferences);
 
         ToolResult result = tool.execute(arguments);
