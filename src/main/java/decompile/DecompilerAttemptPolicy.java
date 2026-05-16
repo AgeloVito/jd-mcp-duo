@@ -9,11 +9,8 @@ final class DecompilerAttemptPolicy {
     private DecompilerAttemptPolicy() {
     }
 
-    static List<String> fallbackOrder(DecompilerOptions options, boolean jdCoreV0AlreadyAttempted) {
+    static List<String> fallbackOrder(DecompilerOptions options) {
         LinkedHashSet<String> order = new LinkedHashSet<>();
-        if (!jdCoreV0AlreadyAttempted) {
-            order.add(DecompilerEngines.JD_CORE_V0);
-        }
         order.add(DecompilerEngines.VINEFLOWER);
         order.add(DecompilerEngines.CFR);
         order.add(DecompilerEngines.PROCYON);

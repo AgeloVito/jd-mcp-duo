@@ -48,9 +48,7 @@ public final class DecompilerSupport {
         }
 
         DecompilationResult v0Result = null;
-        boolean jdCoreV0Attempted = false;
         if (v1Result != null) {
-            jdCoreV0Attempted = true;
             v0Result = attemptEngine(loader, classLocation, options, DecompilerEngines.JD_CORE_V0, attempted, failures, true);
             if (v0Result != null) {
                 DecompilationOutcome patchedOutcome = patchV1Result(
@@ -73,7 +71,7 @@ public final class DecompilerSupport {
             }
         }
 
-        for (String engine : DecompilerAttemptPolicy.fallbackOrder(options, jdCoreV0Attempted)) {
+        for (String engine : DecompilerAttemptPolicy.fallbackOrder(options)) {
             DecompilationResult result = attemptEngine(loader, classLocation, options, engine, attempted, failures, false);
             if (result != null) {
                 return outcome(options, classLocation.internalName(), options.requestedEngine(), engine, false, true, false, false, false, attempted, failures, result);
