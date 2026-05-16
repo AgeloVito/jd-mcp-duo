@@ -29,6 +29,7 @@ public class ListDependenciesTool implements MCPTool {
         SchemaSupport.addString(properties, "format", "Output format: json (default) or text (GAV per line)");
         SchemaSupport.addString(properties, "output", "Optional file path to write the dependency list");
         SchemaSupport.addInteger(properties, "limit", "Maximum dependencies to return", 500);
+        SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
         SchemaSupport.require(schema, "path");
         return schema;
     }
