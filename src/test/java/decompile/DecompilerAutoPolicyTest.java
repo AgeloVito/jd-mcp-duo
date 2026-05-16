@@ -77,7 +77,7 @@ class DecompilerAutoPolicyTest {
                 () -> NativeJadxSupport.runNativeAttempt(() -> {
                     Thread.sleep(5_000);
                     return new DecompilationResult();
-                }, 10)
+                }, 10, "test-timeout")
         );
 
         assertTrue(timeout.getMessage().contains("timed out"));
