@@ -19,7 +19,6 @@ import java.util.Set;
 
 public record DecompilerOptions(
         String requestedEngine,
-        String profile,
         Integer releaseVersion,
         boolean lineNumbers,
         boolean advancedLookup,
@@ -34,16 +33,12 @@ public record DecompilerOptions(
     );
 
     public static DecompilerOptions fromArguments(JsonObject arguments, String defaultEngine) {
-        String profile = JsonUtils.getString(arguments, "profile", "fast").toLowerCase();
-        if (!List.of("fast", "accurate", "debuggable").contains(profile)) {
-            throw new IllegalArgumentException("Unsupported decompilation profile: " + profile + ". Expected fast, accurate, or debuggable.");
-        }
         String requestedEngine = JsonUtils.getString(arguments, "engine", null);
-        String engine = DecompilerEngines.normalize(resolveDefaultEngine(requestedEngine, profile, defaultEngine));
+        String engine = DecompilerEngines.normalize(requestedEngine != null ? requestedEngine : defaultEngine);
         Integer releaseVersion = arguments.has("releaseVersion") && !arguments.get("releaseVersion").isJsonNull()
                 ? JsonUtils.getInt(arguments, "releaseVersion", Runtime.version().feature())
                 : null;
-        boolean lineNumbers = JsonUtils.getBoolean(arguments, "lineNumbers", "debuggable".equals(profile));
+        boolean lineNumbers = JsonUtils.getBoolean(arguments, "lineNumbers", false);
         boolean advancedLookup = JsonUtils.getBoolean(arguments, "advancedLookup", false);
         long attemptTimeoutMillis = JsonUtils.getInt(arguments, "attemptTimeoutMillis", (int) DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
         if (attemptTimeoutMillis < 0) {
@@ -59,7 +54,6 @@ public record DecompilerOptions(
 
         return new DecompilerOptions(
                 engine,
-                profile,
                 releaseVersion,
                 lineNumbers,
                 advancedLookup,
@@ -95,13 +89,6 @@ public record DecompilerOptions(
             return List.of();
         }
         return List.of("Ignored JD-Core v0-only preferences for JD-Core v1 attempt: " + String.join(", ", ignored));
-    }
-
-    private static String resolveDefaultEngine(String requestedEngine, String profile, String defaultEngine) {
-        if (requestedEngine != null && !requestedEngine.isBlank()) {
-            return requestedEngine;
-        }
-        return defaultEngine;
     }
 
     private static Map<String, String> defaultsFor(String engine, boolean lineNumbers) {

@@ -40,7 +40,6 @@ public class BatchDecompileJarsTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "recursive", "Recursively scan subdirectories", false);
         SchemaSupport.addString(properties, "pattern", "Optional glob pattern");
         SchemaSupport.addString(properties, "engine", "Decompiler engine");
-        SchemaSupport.addString(properties, "profile", "fast, accurate, or debuggable");
         SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
         SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
         SchemaSupport.addBoolean(properties, "lineNumbers", "Include line number metadata", false);

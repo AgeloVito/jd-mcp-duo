@@ -29,13 +29,13 @@ public final class EngineCatalog {
     private static final Map<String, JsonObject> ENGINES = new LinkedHashMap<>();
 
     static {
-        register(DecompilerEngines.JD_CORE_V1, "Default analytical JD engine", "fast", "accurate", "debuggable");
-        register(DecompilerEngines.JD_CORE_V0, "Pattern-matching JD engine, useful as fallback and patch source", "fast");
-        register(DecompilerEngines.CFR, "Broadly compatible decompiler with stable output", "fast", "accurate");
-        register(DecompilerEngines.PROCYON, "Decompiler with readable output and useful line-number options", "accurate", "debuggable");
-        register(DecompilerEngines.FERNFLOWER, "Classic analytical decompiler", "accurate");
-        register(DecompilerEngines.VINEFLOWER, "Most accurate modern Java-focused decompiler, first choice in auto", "fast", "accurate", "debuggable");
-        register(DecompilerEngines.JADX, "Decompiler for JVM classes and Android-oriented inputs, last resort in auto", "accurate", "debuggable");
+        register(DecompilerEngines.JD_CORE_V1, "Default analytical JD engine");
+        register(DecompilerEngines.JD_CORE_V0, "Pattern-matching JD engine, useful as fallback and patch source");
+        register(DecompilerEngines.CFR, "Broadly compatible decompiler with stable output");
+        register(DecompilerEngines.PROCYON, "Decompiler with readable output and useful line-number options");
+        register(DecompilerEngines.FERNFLOWER, "Classic analytical decompiler");
+        register(DecompilerEngines.VINEFLOWER, "Most accurate modern Java-focused decompiler, first choice in auto");
+        register(DecompilerEngines.JADX, "Decompiler for JVM classes and Android-oriented inputs, last resort in auto");
     }
 
     private EngineCatalog() {
@@ -52,13 +52,7 @@ public final class EngineCatalog {
         return normalized == null ? null : ENGINES.get(normalized);
     }
 
-    public static JsonArray profilesJson() {
         JsonArray profiles = new JsonArray();
-        profiles.add(profileJson("fast", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX."));
-        profiles.add(profileJson("accurate", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX."));
-        profiles.add(profileJson("debuggable", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX. lineNumbers defaults to true."));
-        return profiles;
-    }
 
     public static JsonObject aliasesJson() {
         JsonObject aliases = new JsonObject();
@@ -82,12 +76,6 @@ public final class EngineCatalog {
         ENGINES.put(engine, json);
     }
 
-    private static JsonObject profileJson(String name, String description) {
-        JsonObject json = new JsonObject();
-        json.addProperty("profile", name);
-        json.addProperty("description", description);
-        return json;
-    }
 
     private static JsonArray optionsFor(String engine) {
         OptionSink options = new OptionSink();

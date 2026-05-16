@@ -53,7 +53,6 @@ final class DecompilationCache {
                     fingerprint(path),
                     classNameOrInternal,
                     options.requestedEngine(),
-                    options.profile(),
                     options.releaseVersion(),
                     options.lineNumbers(),
                     options.advancedLookup(),
