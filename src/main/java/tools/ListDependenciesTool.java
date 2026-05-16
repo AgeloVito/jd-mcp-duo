@@ -108,7 +108,7 @@ public class ListDependenciesTool implements MCPTool {
         structured.addProperty("path", path.toString());
         structured.addProperty("totalCount", totalDeps);
         structured.addProperty("showing", shown.size());
-        int _total = jsonDeps.size();
+        int _total = totalDeps;
             jsonDeps = JsonUtils.paginate(jsonDeps, offset, limit);
         structured.addProperty("totalResults", _total);
         structured.addProperty("offset", offset);

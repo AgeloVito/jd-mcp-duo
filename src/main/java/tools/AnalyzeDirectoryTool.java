@@ -63,6 +63,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
                     .sorted()
                     .toList();
 
+            int totalArchives = paths.size();
             if (limit > 0 && paths.size() > limit) {
                 paths = paths.subList(0, limit);
             }
@@ -94,7 +95,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
             structured.addProperty("archiveCount", archives.size());
             structured.addProperty("totalClasses", totalClasses);
             structured.addProperty("totalSize", totalSize);
-            int _total = archives.size();
+            int _total = totalArchives;
             archives = JsonUtils.paginate(archives, offset, limit);
             structured.addProperty("totalResults", _total);
             structured.addProperty("offset", offset);
