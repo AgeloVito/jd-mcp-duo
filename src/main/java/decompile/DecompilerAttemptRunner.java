@@ -30,12 +30,6 @@ final class DecompilerAttemptRunner {
             return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            // If the thread doesn't respond to interrupt, abandon it — the cached pool
-            // spawns new threads so zombie ones won't block other tasks.
-            if (!future.isDone()) {
-                System.err.printf("[jd-mcp-duo] WARNING: %s timed out and did not respond to interrupt, abandoning%n",
-                        label);
-            }
             throw new AttemptTimeoutException(timeoutMillis);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
