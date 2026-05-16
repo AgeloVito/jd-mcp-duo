@@ -891,8 +891,9 @@ public final class PersistentScopeIndex {
                     }
 
                     if (!buildIfMissing) {
-                        throw new IOException("Index out of date: " + normalized.getFileName() + ". "
-                                + "Rebuild with index_scope first.");
+                        throw new IOException("Index missing or out of date. Run first:\n"
+                                + "  index_scope --path=" + normalized
+                                + " --indexPath=" + databasePath);
                     }
 
                     System.err.printf("\r[jd-mcp-duo] indexing: building index for %s...", normalized.getFileName());
