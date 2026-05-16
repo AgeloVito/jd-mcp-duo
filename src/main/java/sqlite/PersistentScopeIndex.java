@@ -860,22 +860,30 @@ public final class PersistentScopeIndex {
     private static IndexingResult ensureIndexed(Path databasePath, List<Path> inputs) throws Exception {
         List<Path> indexedInputs = new ArrayList<>();
         List<IndexFailure> failures = new ArrayList<>();
+        int total = inputs.size();
+        int idx = 0;
+        int newCount = 0;
         try (Connection connection = DriverManager.getConnection(DB_URL_PREFIX + databasePath)) {
+            System.err.printf("[jd-mcp-duo] indexing: scanning %d archives...%n", total);
             for (Path input : inputs) {
                 try {
                     Path normalized = input.toAbsolutePath().normalize();
                     String fingerprint = ArchiveIndexCache.fingerprint(normalized);
                     if (isCurrent(connection, normalized, fingerprint)) {
                         indexedInputs.add(normalized);
+                        System.err.printf("\r[jd-mcp-duo] indexing: scanned %d/%d, %d new — %s", ++idx, total, newCount, normalized.getFileName());
                         continue;
                     }
 
+                    System.err.printf("\r[jd-mcp-duo] indexing: building index for %s...", normalized.getFileName());
                     ArchiveIndex archive = ArchiveIndexCache.get(normalized);
                     connection.setAutoCommit(false);
                     deleteArchive(connection, archive.path());
                     insertArchive(connection, archive);
                     connection.commit();
                     indexedInputs.add(archive.path());
+                    newCount++;
+                    System.err.printf("\r[jd-mcp-duo] indexing: scanned %d/%d, %d new — %s", ++idx, total, newCount, normalized.getFileName());
                 } catch (Exception e) {
                     try {
                         connection.rollback();
@@ -896,6 +904,7 @@ public final class PersistentScopeIndex {
                 }
             }
         }
+        System.err.printf("\r[jd-mcp-duo] indexing: complete — %d archives, %d new%n", total, newCount);
         return new IndexingResult(List.copyOf(indexedInputs), List.copyOf(failures));
     }
 

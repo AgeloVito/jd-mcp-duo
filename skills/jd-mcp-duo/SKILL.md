@@ -201,7 +201,7 @@ Profile fallback 顺序：
 | `attemptTimeoutMillis` | 默认 30000，一般无需显式传；引擎频繁超时可调大；`0` 禁用超时 |
 | `releaseVersion` | 多版本 JAR 或 JMOD 需要时指定；否则用运行时版本。 |
 | `limit` / `classLimit` / `jarLimit` / `maxNodes` | 不要随意传 `0` 或超大值；部分批量工具中 `0` 是不限。 |
-| `scopePath` | 跨归档查询时必须传；目录 scope 建议同时传 `scopeRecursive=true`。 |
+| `scopePath` | 跨归档查询时必须传；目录 scope 建议同时传 `scopeRecursive=true`。**首次使用会扫描所有归档建索引**，stderr 显示 `[jd-mcp-duo] indexing: ...` 进度，注意转发给用户。 |
 | `indexPath` | 工具默认 `~/.jd-mcp-duo/index.sqlite`；优先主动传 `./.jd-mcp-duo/index.sqlite` 放项目目录下，隔离不同项目且不占系统盘。 |
 | `output` / `outputDir` / `saveTo` | 工具会创建目录并可能覆盖已有文件；代理必须先检查目标目录或选唯一输出目录。 |
 
@@ -214,6 +214,17 @@ Profile fallback 顺序：
 | 用户明确说正则，或 query 明显是正则表达式 | `regex` |
 
 Java 包名里的 `.` 是普通文本，不要因此切到 `regex`。正则中匹配字面 `.` 写 `[.]`。
+
+## 工具选择：内置优先
+
+列类和查字节码时，优先使用 jd-mcp-duo 内置工具：
+
+| 意图 | 优先 | 降级（仅限内置工具不可用时） |
+|------|------|---------------------------|
+| 列出 JAR 中的类 | `list_classes` | `jar tf` |
+| 查看类字节码 | `show_bytecode` | `javap -c -p` |
+
+内置工具提供归一化类名、结构化元数据、多引擎回退，优于外部命令的原始输出。
 
 ## 输出规范与安全边界
 
