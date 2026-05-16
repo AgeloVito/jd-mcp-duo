@@ -149,7 +149,7 @@ claude mcp get jd-mcp-duo
 | `path` | 是 | .class 文件、归档或目录的路径 |
 | `className` | 否 | 当 path 指向归档或目录时指定类名（如 `com.example.Main`） |
 | `engine` | 否 | 反编译引擎（默认：auto） |
-| `profile` | 否 | `fast`、`accurate` 或 `debuggable` |
+
 
 ```bash
 ./bin/jd-mcp-duo decompile_class --path=app.jar --className=com.example.Main
@@ -229,13 +229,13 @@ claude mcp get jd-mcp-duo
 ./bin/jd-mcp-duo class_metadata --path=app.jar --className=com.example.Main
 ```
 
-**`list_engines`** — 列出所有可用的反编译引擎、别名和支持的 profile。
+**`list_engines`** — 列出所有可用的反编译引擎和别名。
 
 ```bash
 ./bin/jd-mcp-duo list_engines
 ```
 
-**`describe_engine_options`** — 描述指定反编译引擎的可配置选项和支持的 profile。
+**`describe_engine_options`** — 描述指定反编译引擎的可配置选项。
 
 ```bash
 ./bin/jd-mcp-duo describe_engine_options --engine=cfr
@@ -410,8 +410,8 @@ claude mcp get jd-mcp-duo
 
 | 参数 | 适用工具 | 说明 |
 |---|---|---|
-| `engine` | 反编译类工具 | 引擎名：`auto`、`jd-core-v1`、`jd-core-v0`、`jd-core-duo`、`cfr`、`procyon`、`fernflower`、`vineflower`、`jadx` |
-| `profile` | 反编译类工具 | `fast`、`accurate` 或 `debuggable` — 自动选择合适的引擎和选项 |
+| `engine` | 反编译类工具 | 引擎名：`auto`、`jd-core-v1`、`jd-core-v0`、`cfr`、`procyon`、`fernflower`、`vineflower`、`jadx` |
+
 | `indexPath` | 搜索/分析类工具 | 自定义 SQLite 索引路径（默认：`~/.jd-mcp-duo/index.sqlite`） |
 | `verbose` | 批量反编译工具 | 结构化结果中包含每个文件的详细信息（默认：false） |
 | `scopePath` | 搜索/分析类工具 | 用于多归档 scope 索引的目录或归档 |

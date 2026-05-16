@@ -268,13 +268,13 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo class_metadata --path=app.jar --className=com.example.Main
 ```
 
-**`list_engines`** — List all available decompiler engines, their aliases, and supported profiles (fast/accurate/debuggable).
+**`list_engines`** — List all available decompiler engines, their aliases.
 
 ```bash
 ./bin/jd-mcp-duo list_engines
 ```
 
-**`describe_engine_options`** — Describe the configurable options and supported profiles for a specific decompiler engine.
+**`describe_engine_options`** — Describe the configurable options for a specific decompiler engine.
 
 | Parameter | Required | Description |
 |---|---|---|
@@ -550,8 +550,8 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 
 | Parameter | Applicable tools | Description |
 |---|---|---|
-| `engine` | decompilation tools | Decompiler engine: `auto`, `jd-core-v1`, `jd-core-v0`, `jd-core-duo`, `cfr`, `procyon`, `fernflower`, `vineflower`, `jadx` |
-| `profile` | decompilation tools | `fast`, `accurate`, or `debuggable` — selects appropriate engine and options |
+| `engine` | decompilation tools | Decompiler engine: `auto`, `jd-core-v1`, `jd-core-v0`, `cfr`, `procyon`, `fernflower`, `vineflower`, `jadx` |
+
 | `scopePath` | search/analysis tools | Directory or archive for multi-archive scope indexing |
 | `indexPath` | search/analysis tools | Custom SQLite index path (default: `~/.jd-mcp-duo/index.sqlite`) |
 | `verbose` | batch decompile tools | Include per-file details in structured result (default: false) |
@@ -571,7 +571,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 
 ### Multi-engine fallback
 
-When the preferred engine fails (StackOverflowError, empty output, decompilation markers), the auto profile tries fallback engines in a configured order. Per-engine timeouts prevent hung decompilation.
+When the preferred engine fails (StackOverflowError, empty output, decompilation markers), the auto engine tries fallback engines in a configured order. Per-engine timeouts prevent hung decompilation.
 
 ### JD-Core v1 + v0 method patching
 
