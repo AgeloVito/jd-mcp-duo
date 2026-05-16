@@ -47,7 +47,7 @@
 | MCP | `decompile_class`、`decompile_advanced`、`decompile_jar`、`list_classes`、`class_metadata`、`list_dependencies`、`source_lookup`、`compare_jars`、`compare_class`、`compare_jd_core`、`show_bytecode`、`show_cfg`、`build_skeleton`、`compiler_diagnostics`、`remove_unnecessary_casts`。 |
 | 任意 | `help`、`list_engines`、`describe_engine_options`、`analyze_directory`。 |
 
-## Scope 和索引
+## 调用与元信息
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
