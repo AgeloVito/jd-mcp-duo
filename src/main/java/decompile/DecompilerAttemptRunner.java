@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 final class DecompilerAttemptRunner {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool(
             new DaemonThreadFactory());
-    private static final int CANCEL_GRACE_SECONDS = 2;
 
     private DecompilerAttemptRunner() {
     }
@@ -31,11 +30,11 @@ final class DecompilerAttemptRunner {
             return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            // Give the thread a short grace period to respond to interrupt,
-            // then abandon it to prevent zombie threads blocking the pool.
+            // If the thread doesn't respond to interrupt, abandon it — the cached pool
+            // spawns new threads so zombie ones won't block other tasks.
             if (!future.isDone()) {
-                System.err.printf("[jd-mcp-duo] WARNING: %s did not respond to cancel after %ds, abandoning%n",
-                        label, CANCEL_GRACE_SECONDS);
+                System.err.printf("[jd-mcp-duo] WARNING: %s timed out and did not respond to interrupt, abandoning%n",
+                        label);
             }
             throw new AttemptTimeoutException(timeoutMillis);
         } catch (ExecutionException e) {
@@ -56,7 +55,7 @@ final class DecompilerAttemptRunner {
         }
     }
 
-    static final class DaemonThreadFactory implements ThreadFactory {
+    private static final class DaemonThreadFactory implements ThreadFactory {
         private final java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger();
 
         @Override
