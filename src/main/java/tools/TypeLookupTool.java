@@ -61,21 +61,22 @@ public class TypeLookupTool implements MCPTool {
         JsonArray matches = new JsonArray();
         StringBuilder text = new StringBuilder();
         text.append("Type lookup for ").append(query).append("\n\n");
+        int[] totalMatched = {0};
         for (ScopedClass scopedClass : scope.classes()) {
-            if (matches.size() >= limit) {
-                break;
-            }
             if (!pattern.matcher(scopedClass.indexedClass().displayName()).find()
                     && !pattern.matcher(scopedClass.indexedClass().internalName()).find()) {
                 continue;
             }
-            JsonObject item = new JsonObject();
-            item.addProperty("sourcePath", scopedClass.sourcePath().toString());
-            item.addProperty("internalName", scopedClass.indexedClass().internalName());
-            item.addProperty("displayName", scopedClass.indexedClass().displayName());
-            matches.add(item);
-            text.append("- ").append(scopedClass.indexedClass().displayName())
-                    .append(" @ ").append(scopedClass.sourcePath()).append('\n');
+            totalMatched[0]++;
+            if (matches.size() < limit) {
+                JsonObject item = new JsonObject();
+                item.addProperty("sourcePath", scopedClass.sourcePath().toString());
+                item.addProperty("internalName", scopedClass.indexedClass().internalName());
+                item.addProperty("displayName", scopedClass.indexedClass().displayName());
+                matches.add(item);
+                text.append("- ").append(scopedClass.indexedClass().displayName())
+                        .append(" @ ").append(scopedClass.sourcePath()).append('\n');
+            }
         }
         JsonObject structured = new JsonObject();
         structured.addProperty("query", query);
@@ -84,7 +85,7 @@ public class TypeLookupTool implements MCPTool {
         structured.addProperty("queryMillis", (System.nanoTime() - startedAt) / 1_000_000L);
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
-        int _total = matches.size();
+        int _total = totalMatched[0];
         matches = JsonUtils.paginate(matches, offset, limit);
         structured.addProperty("totalResults", _total);
         structured.addProperty("offset", offset);
