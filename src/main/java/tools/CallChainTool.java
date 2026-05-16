@@ -38,7 +38,6 @@ public class CallChainTool implements MCPTool {
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
         SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
-        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", true);
         SchemaSupport.addInteger(properties, "depth", "Recursion depth", 3);
         SchemaSupport.addInteger(properties, "maxNodes", "Maximum nodes returned", 128);
         SchemaSupport.require(schema, "path");
@@ -51,14 +50,13 @@ public class CallChainTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) throws Exception {
         long startedAt = System.nanoTime();
         Path indexPath = JsonUtils.getPath(arguments, "indexPath");
-        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", true);
         PersistentScopeIndex index = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
                 arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
                         ? JsonUtils.getPath(arguments, "scopePath") : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
                 indexPath,
-                !noBuild
+                false
         );
         String owner = JsonUtils.getString(arguments, "className", "").replace('.', '/');
         String methodName = JsonUtils.getString(arguments, "methodName", "");

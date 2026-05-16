@@ -30,7 +30,6 @@ public class TypeLookupTool implements MCPTool {
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
         SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
-        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", true);
         SchemaSupport.addBoolean(properties, "caseSensitive", "Enable case-sensitive matching", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum results", 50);
         SchemaSupport.require(schema, "path");
@@ -48,7 +47,6 @@ public class TypeLookupTool implements MCPTool {
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
 
         Path indexPath = JsonUtils.getPath(arguments, "indexPath");
-        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", true);
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
                 arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
@@ -56,7 +54,7 @@ public class TypeLookupTool implements MCPTool {
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
                 indexPath,
-                !noBuild
+                false
         );
         JsonArray matches = new JsonArray();
         StringBuilder text = new StringBuilder();
