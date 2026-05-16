@@ -191,8 +191,8 @@ public class CliMode {
         out.println("  # List supported decompiler engines");
         out.println("  java -Xss10m -jar " + jarName() + " list_engines");
         out.println();
-        out.println("  # Decompile with JD-Core v1 plus JD-Core v0 method patching only");
-        out.println("  java -Xss10m -jar " + jarName() + " decompile_class --path=/path/to/app.jar --className=com.example.Main --engine=jd-core-duo");
+        out.println("  # Decompile with Vineflower (best modern Java accuracy)");
+        out.println("  java -Xss10m -jar " + jarName() + " decompile_class --path=/path/to/app.jar --className=com.example.Main --engine=vineflower");
         out.println();
         out.println("  # Compare JD-Core v0 and JD-Core v1 output for one class");
         out.println("  java -Xss10m -jar " + jarName() + " compare_jd_core --path=/path/to/app.jar --className=com.example.Main");

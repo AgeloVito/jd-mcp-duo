@@ -52,8 +52,6 @@ public final class EngineCatalog {
         return normalized == null ? null : ENGINES.get(normalized);
     }
 
-        JsonArray profiles = new JsonArray();
-
     public static JsonObject aliasesJson() {
         JsonObject aliases = new JsonObject();
         DecompilerEngines.aliases().forEach(aliases::addProperty);

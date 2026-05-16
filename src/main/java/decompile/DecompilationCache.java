@@ -40,7 +40,6 @@ final class DecompilationCache {
                             String fingerprint,
                             String className,
                             String engine,
-                            String profile,
                             Integer releaseVersion,
                             boolean lineNumbers,
                             boolean advancedLookup,

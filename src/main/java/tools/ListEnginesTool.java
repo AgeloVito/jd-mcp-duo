@@ -24,7 +24,20 @@ public class ListEnginesTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) {
         JsonObject structured = new JsonObject();
         structured.add("engines", enginesWithAuto());
-        structured.add("profiles", EngineCatalog.profilesJson());
+        JsonArray profiles = new JsonArray();
+        JsonObject fastProfile = new JsonObject();
+        fastProfile.addProperty("profile", "fast");
+        fastProfile.addProperty("description", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX.");
+        profiles.add(fastProfile);
+        JsonObject accurateProfile = new JsonObject();
+        accurateProfile.addProperty("profile", "accurate");
+        accurateProfile.addProperty("description", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX.");
+        profiles.add(accurateProfile);
+        JsonObject debuggableProfile = new JsonObject();
+        debuggableProfile.addProperty("profile", "debuggable");
+        debuggableProfile.addProperty("description", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX. lineNumbers defaults to true.");
+        profiles.add(debuggableProfile);
+        structured.add("profiles", profiles);
         structured.add("aliases", EngineCatalog.aliasesJson());
         structured.addProperty("defaultEngine", "auto");
         return ToolResults.structured(renderText(structured), structured);
