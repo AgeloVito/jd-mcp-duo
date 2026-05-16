@@ -54,9 +54,9 @@ public final class EngineCatalog {
 
     public static JsonArray profilesJson() {
         JsonArray profiles = new JsonArray();
-        profiles.add(profileJson("fast", "Auto: Vineflower → CFR → Procyon → JD-Core v1+v0 patch → JADX."));
-        profiles.add(profileJson("accurate", "Auto: Vineflower → CFR → Procyon → JD-Core v1+v0 patch → Fernflower → JADX."));
-        profiles.add(profileJson("debuggable", "Auto: Vineflower → CFR → Procyon → JD-Core v1+v0 patch → Fernflower → JADX. lineNumbers defaults to true."));
+        profiles.add(profileJson("fast", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX."));
+        profiles.add(profileJson("accurate", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX."));
+        profiles.add(profileJson("debuggable", "Auto: Vineflower → CFR → JD-Core v1+v0 patch → JADX. lineNumbers defaults to true."));
         return profiles;
     }
 

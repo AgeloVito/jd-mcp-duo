@@ -1,7 +1,5 @@
 package decompile;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -10,13 +8,7 @@ final class DecompilerAttemptPolicy {
     }
 
     static List<String> fallbackOrder(DecompilerOptions options) {
-        LinkedHashSet<String> order = new LinkedHashSet<>();
-        switch (options.profile()) {
-            case "accurate", "debuggable" -> order.add(DecompilerEngines.FERNFLOWER);
-            default -> {} // fast: skip Fernflower
-        }
-        order.add(DecompilerEngines.JADX);
-        return new ArrayList<>(order);
+        return List.of(DecompilerEngines.JADX);
     }
 
     static boolean isUsableOutput(String source) {

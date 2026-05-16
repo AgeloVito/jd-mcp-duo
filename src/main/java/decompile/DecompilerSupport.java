@@ -53,10 +53,6 @@ public final class DecompilerSupport {
         if (result != null) {
             return outcome(options, internalName, requestedEngine, DecompilerEngines.CFR, false, false, false, false, false, attempted, failures, result);
         }
-        result = attemptEngine(loader, classLocation, options, DecompilerEngines.PROCYON, attempted, failures, false);
-        if (result != null) {
-            return outcome(options, internalName, requestedEngine, DecompilerEngines.PROCYON, false, false, false, false, false, attempted, failures, result);
-        }
 
         // Phase 2: JD-Core v1 + v0 method-level patch (traditional fallback)
         DecompilationResult v1Result = attemptEngine(loader, classLocation, options, DecompilerEngines.JD_CORE_V1, attempted, failures, true);
