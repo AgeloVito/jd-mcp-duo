@@ -14,28 +14,14 @@ final class DecompilerAttemptPolicy {
         if (!jdCoreV0AlreadyAttempted) {
             order.add(DecompilerEngines.JD_CORE_V0);
         }
+        order.add(DecompilerEngines.VINEFLOWER);
+        order.add(DecompilerEngines.CFR);
+        order.add(DecompilerEngines.PROCYON);
         switch (options.profile()) {
-            case "accurate" -> {
-                order.add(DecompilerEngines.VINEFLOWER);
-                order.add(DecompilerEngines.CFR);
-                order.add(DecompilerEngines.PROCYON);
-                order.add(DecompilerEngines.FERNFLOWER);
-                order.add(DecompilerEngines.JADX);
-            }
-            case "debuggable" -> {
-                order.add(DecompilerEngines.PROCYON);
-                order.add(DecompilerEngines.CFR);
-                order.add(DecompilerEngines.VINEFLOWER);
-                order.add(DecompilerEngines.FERNFLOWER);
-                order.add(DecompilerEngines.JADX);
-            }
-            default -> {
-                order.add(DecompilerEngines.VINEFLOWER);
-                order.add(DecompilerEngines.CFR);
-                order.add(DecompilerEngines.PROCYON);
-                order.add(DecompilerEngines.JADX);
-            }
+            case "accurate", "debuggable" -> order.add(DecompilerEngines.FERNFLOWER);
+            default -> {} // fast: skip Fernflower
         }
+        order.add(DecompilerEngines.JADX);
         return new ArrayList<>(order);
     }
 

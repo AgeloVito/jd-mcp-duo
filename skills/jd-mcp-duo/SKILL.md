@@ -35,30 +35,12 @@ description: "Java 多引擎反编译与字节码分析工具，用于通过 jd-
 
 调用方式按优先级降级，上一级不可用时自动尝试下一级：
 
-1. **MCP** — 用户已配置好的 MCP 服务。仅用于轻量任务（元数据查询、类清单、字节码查看、依赖列表等），零启动开销，响应最快。建索引工具和批量工具见下方调用规范，直接走 CLI。
-2. **CLI wrapper** — `{安装目录}/bin/jd-mcp-duo(.bat)`。批量工具和 MCP 不可用时使用，wrapper 内置 JRE 路径，无需额外 Java 环境。
+1. **MCP** — 用户已配置好的 MCP 服务。仅用于轻量任务。建索引工具和批量工具见下方调用规范，直接走 CLI。
+2. **CLI wrapper** — `{安装目录}/bin/jd-mcp-duo(.bat)`。CLI wrapper 内置 JRE，无需额外 Java 环境。
 3. **平台 JRE + JAR** — `{安装目录}/runtime/bin/java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar`。wrapper 损坏或不可执行时，直接用平台包自带的 JRE 启动 JAR。
 4. **系统 Java + JAR** — `java -Xss10m -jar {安装目录}/lib/jd-mcp-duo.jar`。前三者全部不可用时最后兜底，需要系统已安装 JDK 25+。
 
-> `-Xss10m` 增大线程栈，防止反编译大方法或深层调用链分析时 `StackOverflowError`。
-
-## MCP / CLI 调用规范
-
-| 规则 | 内容 |
-|------|------|
-| **MCP 启动** | 无参数启动就是本地 stdio MCP 服务。客户端必须先 `initialize`，再发 `notifications/initialized`，之后才能 `tools/list` / `tools/call`。 |
-| **MCP 方法** | 支持 `initialize`、`notifications/initialized`、`tools/list`、`tools/call`、`ping`、`shutdown`、`exit`/`notifications/exit`。`help` 是工具，不是 JSON-RPC method。 |
-| **MCP 返回** | 成功或工具级失败都走 `tools/call` result：`content` 文本、可选 `structuredContent`、`isError`。协议错误才走 JSON-RPC error。 |
-| **MCP 进度** | 如果请求带 `_meta.progressToken`，服务会发 `notifications/progress`；stderr 仍可能有 `[jd-mcp-duo]` 摘要行。 |
-| **CLI 命令** | `{CLI命令} <tool> --key=value [--json]`；也支持 `--key value`，重复 key 变数组，无值 key 变布尔 `true`。 |
-| **CLI 输出** | 不带 `--json` 时 stdout 是文本摘要；带 `--json` 时 stdout 是 `{text, structuredData, isError}`。stderr 是日志、进度和完成摘要。 |
-| **退出码** | CLI 工具 `isError=true` 或异常时返回 1；成功返回 0。 |
-| **索引工具→CLI** | `search_in_jar`、`type_lookup`、`type_hierarchy`、`find_references`、`method_overrides`、`call_chain`、`resolve_symbol`、`resolve_stacktrace` 直接走 CLI，不走 MCP。原因：首次调用会建索引，耗时长且无进度反馈。 |
-| **批量工具→CLI** | `save_all_sources`、`decompile_directory`、`batch_decompile`、`batch_decompile_jars`、`source_quality_report` 直接走 CLI，避免 MCP 上下文过大。 |
-| **轻量工具→MCP** | 其余工具（`decompile_class`、`decompile_advanced`、`decompile_jar`、`list_classes`、`class_metadata`、`list_engines`、`describe_engine_options`、`analyze_directory`、`source_lookup`、`compare_jars`、`compare_class`、`compare_jd_core`、`show_bytecode`、`show_cfg`、`build_skeleton`、`list_dependencies`、`compiler_diagnostics`、`remove_unnecessary_casts`、`help`）优先 MCP。 |
-| **描述符** | JVM descriptor 只描述参数和返回值：`--descriptor='()V'`、`--descriptor='(Ljava/lang/String;)I'`。构造器用 `--methodName='<init>'`，静态初始化器用 `--methodName='<clinit>'`。 |
-
-性能要点：同一个 MCP 服务或同一个 CLI 批量命令会共享 JVM、索引和缓存；反复单独启动 CLI `decompile_class` 是冷启动，适合少量类，不适合成千上万类。
+> `-Xss10m` 增大线程栈，防止反编译大方法或深层调用链分析时 `StackOverflowError`。同一个 MCP 服务或同一个 CLI 批量命令共享 JVM、索引和缓存；反复单独启动 CLI `decompile_class` 是冷启动，适合少量类，不适合成千上万类。
 
 ## 输入对象与制品布局
 
@@ -216,6 +198,7 @@ Profile fallback 顺序：
 | `scopePath` | 跨归档查询时必须传；目录 scope 建议同时传 `scopeRecursive=true`。**首次使用会扫描所有归档建索引**，stderr 显示 `[jd-mcp-duo] indexing: ...` 进度，注意转发给用户。 |
 | `indexPath` | 工具默认 `~/.jd-mcp-duo/index.sqlite`；优先主动传 `./.jd-mcp-duo/index.sqlite` 放项目目录下，隔离不同项目且不占系统盘。 |
 | `output` / `outputDir` / `saveTo` | 工具会创建目录并可能覆盖已有文件；代理必须先检查目标目录或选唯一输出目录。 |
+| `descriptor` | JVM descriptor 只用单引号字面量：`--descriptor='()V'`。构造器用 `--methodName='<init>'`。 |
 
 ## 查询模式判定
 
