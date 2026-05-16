@@ -110,6 +110,21 @@ public final class JsonUtils {
         return array;
     }
 
+    /**
+     * Slice a JsonArray for pagination (offset + limit).
+     * Returns a new array containing items from offset to offset+limit.
+     */
+    public static JsonArray paginate(JsonArray array, int offset, int limit) {
+        if (offset < 0) offset = 0;
+        if (limit <= 0) return array;
+        JsonArray result = new JsonArray();
+        int end = Math.min(array.size(), offset + limit);
+        for (int i = Math.min(offset, array.size()); i < end; i++) {
+            result.add(array.get(i));
+        }
+        return result;
+    }
+
     public static Path getRequiredPath(JsonObject object, String key) {
         String raw = getString(object, key, "");
         if (raw.isBlank()) {

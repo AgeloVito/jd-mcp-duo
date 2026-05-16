@@ -46,6 +46,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
         boolean recursive = JsonUtils.getBoolean(arguments, "recursive", false);
         String pattern = JsonUtils.getString(arguments, "pattern", "*");
         int limit = JsonUtils.getInt(arguments, "limit", 200);
+        int offset = JsonUtils.getInt(arguments, "offset", 0);
         if (!Files.isDirectory(directory)) {
             throw new IllegalArgumentException("Path must be a directory: " + directory);
         }
@@ -92,6 +93,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
             structured.addProperty("archiveCount", archives.size());
             structured.addProperty("totalClasses", totalClasses);
             structured.addProperty("totalSize", totalSize);
+            archives = JsonUtils.paginate(archives, offset, limit);
             structured.add("archives", archives);
             return ToolResults.structured(text.toString().trim(), structured);
         }

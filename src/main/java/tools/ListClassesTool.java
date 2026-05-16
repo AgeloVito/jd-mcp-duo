@@ -55,6 +55,7 @@ public class ListClassesTool implements MCPTool {
         boolean includeInner = JsonUtils.getBoolean(arguments, "includeInner", false);
         boolean detailed = JsonUtils.getBoolean(arguments, "detailed", false);
         int limit = JsonUtils.getInt(arguments, "limit", 200);
+        int offset = JsonUtils.getInt(arguments, "offset", 0);
 
         try (InputContainer container = InputContainers.open(path, releaseVersion)) {
             List<ClassLocation> classes = container.listClasses(true).stream()
@@ -104,6 +105,7 @@ public class ListClassesTool implements MCPTool {
             if (totalCount > classes.size()) {
                 text.append("... ").append(totalCount - classes.size()).append(" more classes not shown\n");
             }
+            classArray = JsonUtils.paginate(classArray, offset, limit);
             structured.add("classes", classArray);
             if (detailed) {
                 JsonObject packages = new JsonObject();

@@ -52,6 +52,7 @@ public class SearchInJarTool implements MCPTool {
         boolean caseSensitive = JsonUtils.getBoolean(arguments, "caseSensitive", false);
         boolean distinct = JsonUtils.getBoolean(arguments, "distinct", false);
         int limit = JsonUtils.getInt(arguments, "limit", 50);
+        int offset = JsonUtils.getInt(arguments, "offset", 0);
         long startedAt = System.nanoTime();
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
         Path primaryPath = JsonUtils.getRequiredPath(arguments, "path");
@@ -93,6 +94,7 @@ public class SearchInJarTool implements MCPTool {
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
         structured.addProperty("resourceIndexedResults", resourceResults);
+        results = JsonUtils.paginate(results, offset, limit);
         structured.add("results", results);
         if (results.isEmpty()) {
             text.append("No matching results found.");

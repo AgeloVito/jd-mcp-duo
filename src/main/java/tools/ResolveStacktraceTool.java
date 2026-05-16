@@ -81,6 +81,7 @@ public class ResolveStacktraceTool implements MCPTool {
         JsonArray entries = new JsonArray();
         StringBuilder text = new StringBuilder();
         int maxFrames = JsonUtils.getInt(arguments, "maxFrames", 200);
+        int offset = JsonUtils.getInt(arguments, "offset", 0);
         int lineMappingLimitPerFrame = JsonUtils.getInt(arguments, "lineMappingLimitPerFrame", 1);
         int resolvedFrames = 0;
         int frameCount = 0;

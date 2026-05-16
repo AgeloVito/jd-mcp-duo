@@ -43,6 +43,7 @@ public class TypeLookupTool implements MCPTool {
         String queryMode = JsonUtils.getString(arguments, "queryMode", "plain");
         boolean caseSensitive = JsonUtils.getBoolean(arguments, "caseSensitive", false);
         int limit = JsonUtils.getInt(arguments, "limit", 50);
+        int offset = JsonUtils.getInt(arguments, "offset", 0);
         long startedAt = System.nanoTime();
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
 
@@ -82,6 +83,7 @@ public class TypeLookupTool implements MCPTool {
         structured.addProperty("queryMillis", (System.nanoTime() - startedAt) / 1_000_000L);
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
+        matches = JsonUtils.paginate(matches, offset, limit);
         structured.add("matches", matches);
         return ToolResults.structured(text.toString().trim(), structured);
     }

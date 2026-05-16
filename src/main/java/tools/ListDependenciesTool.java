@@ -42,6 +42,7 @@ public class ListDependenciesTool implements MCPTool {
         String format = JsonUtils.getString(arguments, "format", "json");
         Path outputFile = JsonUtils.getPath(arguments, "output");
         int limit = JsonUtils.getInt(arguments, "limit", 500);
+        int offset = JsonUtils.getInt(arguments, "offset", 0);
 
         List<Dep> deps = new ArrayList<>();
         try (JarFile jar = new JarFile(path.toFile())) {
@@ -106,6 +107,7 @@ public class ListDependenciesTool implements MCPTool {
         structured.addProperty("path", path.toString());
         structured.addProperty("totalCount", totalDeps);
         structured.addProperty("showing", shown.size());
+        jsonDeps = JsonUtils.paginate(jsonDeps, offset, limit);
         structured.add("dependencies", jsonDeps);
 
         String text = shown.size() + " embedded dependencies found in " + path;
