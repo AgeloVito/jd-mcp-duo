@@ -39,6 +39,7 @@ public class SearchInJarTool implements MCPTool {
         SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
         SchemaSupport.addBoolean(properties, "distinct", "Deduplicate string results by text", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum number of results", 50);
+        SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "query");
         return schema;

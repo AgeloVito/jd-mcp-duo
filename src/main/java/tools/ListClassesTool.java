@@ -34,6 +34,7 @@ public class ListClassesTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "includeInner", "Include inner classes", false);
         SchemaSupport.addBoolean(properties, "detailed", "Include package statistics", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum classes to return", 200);
+        SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");

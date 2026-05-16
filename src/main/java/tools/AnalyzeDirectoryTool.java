@@ -33,6 +33,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "recursive", "Recursively scan subdirectories", false);
         SchemaSupport.addString(properties, "pattern", "Optional glob pattern");
         SchemaSupport.addInteger(properties, "limit", "Maximum archives to return", 200);
+        SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
