@@ -56,7 +56,7 @@ public class CallChainTool implements MCPTool {
                         ? JsonUtils.getPath(arguments, "scopePath") : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
                 indexPath,
-                false
+                true
         );
         String owner = JsonUtils.getString(arguments, "className", "").replace('.', '/');
         String methodName = JsonUtils.getString(arguments, "methodName", "");

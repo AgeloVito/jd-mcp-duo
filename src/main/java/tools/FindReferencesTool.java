@@ -59,7 +59,7 @@ public class FindReferencesTool implements MCPTool {
                         : null,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
                 indexPath,
-                false
+                true
         );
         String kind = JsonUtils.getString(arguments, "kind", "type").toLowerCase();
         String owner = JsonUtils.getString(arguments, "className", "").replace('.', '/');

@@ -66,7 +66,7 @@ public class SearchInJarTool implements MCPTool {
                 scopePath,
                 scopeRecursive,
                 indexPath,
-                false
+                true
         );
         JsonArray results = new JsonArray();
         StringBuilder text = new StringBuilder();

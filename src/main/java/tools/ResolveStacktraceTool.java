@@ -71,7 +71,7 @@ public class ResolveStacktraceTool implements MCPTool {
                 scopePath,
                 JsonUtils.getBoolean(arguments, "scopeRecursive", false),
                 indexPath,
-                false
+                true
         );
         DecompilerOptions options = DecompilerOptions.fromArguments(arguments, AUTO);
         Map<Path, InputContainer> containers = new HashMap<>();

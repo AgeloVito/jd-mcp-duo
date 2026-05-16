@@ -18,6 +18,14 @@ public final class PersistentScopeIndex {
     private final List<Path> scopePaths;
     private final List<IndexFailure> indexFailures;
 
+    private static final ThreadLocal<Boolean> disableBuild = new ThreadLocal<>();
+
+    /** Called by MCP server to prevent any index building via MCP tools. */
+    public static void setDisableBuild(boolean disabled) {
+        if (disabled) disableBuild.set(true);
+        else disableBuild.remove();
+    }
+
     private PersistentScopeIndex(Path databasePath, List<Path> scopePaths, List<IndexFailure> indexFailures) {
         this.databasePath = databasePath;
         this.scopePaths = scopePaths;
@@ -34,6 +42,11 @@ public final class PersistentScopeIndex {
 
     public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive,
                                             Path indexPath, boolean buildIfMissing) throws Exception {
+        boolean forceNoBuild = Boolean.TRUE.equals(disableBuild.get());
+        if (forceNoBuild && buildIfMissing) {
+            throw new IOException("Index building is disabled in this mode. "
+                    + "Use CLI to build the index with index_scope first.");
+        }
         List<Path> inputs = ScopeSupport.collectScopeInputs(primaryPath, scopePath, recursive);
         Path databasePath = indexPath != null ? indexPath.toAbsolutePath().normalize() : defaultDatabasePath();
         Files.createDirectories(databasePath.getParent());
