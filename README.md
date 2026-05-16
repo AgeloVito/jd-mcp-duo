@@ -63,7 +63,7 @@ All engines are accessed through `transformer-api`. The engine suite includes:
 |---|---|
 | auto | Multi-engine fallback (default) — Vineflower → CFR → JD-Core v1+v0 patch → JADX |
 | JD-Core v1 | Analytical decompiler with v0 method patching on failure |
-| JD-Core v0 | Pattern-matching decompiler (fallback + method patch source) |
+| JD-Core v0 | Pattern-matching decompiler (method patch source for JD-Core v1) |
 | CFR | Broadly compatible, stable output |
 | Procyon | Readable output with line-number options |
 | Fernflower | Classic analytical decompiler |

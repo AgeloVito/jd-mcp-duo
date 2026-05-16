@@ -63,7 +63,7 @@ jd-mcp-duo（本项目）
 |---|---|
 | auto | 多引擎 fallback（默认）— Vineflower → CFR → JD-Core v1+v0 patch → JADX |
 | JD-Core v1 | 分析型反编译器（含 v0 方法修补） |
-| JD-Core v0 | 模式匹配型反编译器（fallback + 方法修补源） |
+| JD-Core v0 | 模式匹配型反编译器（JD-Core v1 的方法修补源） |
 | CFR | 兼容性广，输出稳定 |
 | Procyon | 可读性好，支持行号选项 |
 | Fernflower | 经典分析型反编译器 |
