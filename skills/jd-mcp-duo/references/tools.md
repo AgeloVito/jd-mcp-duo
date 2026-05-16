@@ -4,7 +4,7 @@
 
 ## 代码事实
 
-- 当前 `MCPServer.registerTools()` 注册 33 个工具；同一批工具也全部可通过 CLI 子命令调用。
+- 当前 `MCPServer.registerTools()` 注册 34 个工具；同一批工具也全部可通过 CLI 子命令调用。
 - CLI 不带参数启动本地 stdio MCP；带 `<tool>` 子命令进入 CLI 模式。
 - CLI `--json` 输出 `{text, structuredData, isError}`；不带 `--json` 只输出文本摘要。
 - MCP `tools/call` 返回 `content` 文本、可选 `structuredContent`、`isError`。工具执行失败通常也是 `tools/call` result 的 `isError=true`，不是 JSON-RPC error。
@@ -34,6 +34,8 @@
 - `scopePath` 为空时 scope 等于主 `path`；跨归档分析必须显式传 `scopePath`。
 - `scopeRecursive=true` 用于递归收集目录下的归档；目录中有 class 文件时目录本身也会作为输入。
 - SQLite 索引默认在 `~/.jd-mcp-duo/index.sqlite`；项目隔离建议传 `indexPath=./.jd-mcp-duo/index.sqlite`。
+- **建索引用 `index_scope`**：先建索引再查询，避免阻塞。MCP 模式下所有工具禁止建索引（ThreadLocal 守卫），仅 CLI `index_scope` 可建。
+- 索引基于文件内容 SHA-256 指纹增量更新；已索引的归档跳过不重扫。
 - 索引会跳过损坏输入并记录 partial failures；如果没有任何输入成功索引，工具才整体失败。
 - 调用链和引用图会保留 `sourcePath`，避免多归档同名方法边混淆。
 
@@ -41,14 +43,15 @@
 
 | 推荐通道 | 适用工具 |
 |----------|----------|
-| CLI | `save_all_sources`、`decompile_directory`、`batch_decompile`、`batch_decompile_jars`、`source_quality_report`，以及任何会写大量文件或返回大量结果的任务。 |
-| MCP | 单类反编译、搜索、调用链、元数据、依赖、比较、字节码、CFG、stacktrace 解析等交互式任务。 |
-| 任意 | `help`、`list_engines`、`describe_engine_options` 这类轻量工具。 |
+| CLI | `index_scope`、`save_all_sources`、`decompile_directory`、`batch_decompile`、`batch_decompile_jars`、`source_quality_report`，以及 8 个索引查询工具（`search_in_jar`、`type_lookup`、`type_hierarchy`、`find_references`、`method_overrides`、`call_chain`、`resolve_symbol`、`resolve_stacktrace`）。 |
+| MCP | `decompile_class`、`decompile_advanced`、`decompile_jar`、`list_classes`、`class_metadata`、`list_dependencies`、`source_lookup`、`compare_jars`、`compare_class`、`compare_jd_core`、`show_bytecode`、`show_cfg`、`build_skeleton`、`compiler_diagnostics`、`remove_unnecessary_casts`。 |
+| 任意 | `help`、`list_engines`、`describe_engine_options`、`analyze_directory`。 |
 
-## 调用与元信息
+## Scope 和索引
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
+| `index_scope` | CLI | 扫描 path 和 scopePath 下所有归档，建立或刷新 SQLite 跨归档索引。建索引有进度输出，后续查询秒回。 | `path*:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string` |
 | `help` | MCP/CLI | 列出可用工具和描述，可用于检查服务可用性。 | 无 |
 | `list_engines` | MCP/CLI | 列出反编译引擎、别名、profile 和默认引擎。 | 无 |
 | `describe_engine_options` | MCP/CLI | 查看指定引擎支持的选项、默认 profile 和 raw preferences。 | `engine*:string` |
@@ -69,8 +72,8 @@
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
-| `analyze_directory` | MCP | 分析目录下支持归档，汇总类数量、大小和文件分布。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `limit:integer=200` |
-| `list_classes` | MCP | 列出归档或目录中的类名、内部名和包统计。 | `path*:string`, `package:string`, `releaseVersion:integer`, `includeInner:boolean=false`, `detailed:boolean=false`, `limit:integer=200` |
+| `analyze_directory` | MCP | 分析目录下支持归档，汇总类数量、大小和文件分布。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `limit:integer=200`, `offset:integer=0` |
+| `list_classes` | MCP | 列出归档或目录中的类名、内部名和包统计。 | `path*:string`, `package:string`, `releaseVersion:integer`, `includeInner:boolean=false`, `detailed:boolean=false`, `limit:integer=200`, `offset:integer=0` |
 | `class_metadata` | MCP | 查看类级元数据、方法、字段、注解、访问标志和字节码版本。 | `path*:string`, `className:string`, `releaseVersion:integer` |
 | `source_quality_report` | CLI | 抽样或全量反编译类，统计成功率、patch、fallback、失败原因和质量指标。 | `path*:string`, `engine:string`, `profile:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array`, `classLimit:integer=100` |
 
@@ -78,22 +81,22 @@
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
-| `search_in_jar` | MCP | 搜索类、构造器、方法、字段、字符串、模块和资源。 | `path*:string`, `query*:string`, `type:string`, `queryMode:string`, `caseSensitive:boolean=false`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `distinct:boolean=false`, `limit:integer=50` |
-| `type_lookup` | MCP | 按精确名、通配符或正则查找类型。 | `path*:string`, `query*:string`, `queryMode:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `caseSensitive:boolean=false`, `limit:integer=50` |
-| `type_hierarchy` | MCP | 展示目标类父类、接口、子类和实现层次。 | `path*:string`, `className*:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=8`, `maxNodes:integer=256` |
-| `find_references` | MCP | 查找类型、字段或方法引用。 | `path*:string`, `kind*:string`, `className*:string`, `fieldName:string`, `methodName:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=1`, `maxNodes:integer=256` |
-| `method_overrides` | MCP | 查找方法覆写和接口实现关系。 | `path*:string`, `className*:string`, `methodName*:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=8`, `maxNodes:integer=256` |
-| `resolve_symbol` | MCP | 解析类型、字段或方法符号到内部名、descriptor 和声明匹配。 | `path*:string`, `className:string`, `fieldName:string`, `methodName:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string` |
-| `call_chain` | MCP | 构建静态 caller/callee 调用链；方向为 `callers`、`callees` 或 `both`。 | `path*:string`, `className*:string`, `methodName*:string`, `descriptor:string`, `direction:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=3`, `maxNodes:integer=128` |
+| `search_in_jar` | CLI | 搜索类、构造器、方法、字段、字符串、模块和资源。MCP 下禁用建索引。 | `path*:string`, `query*:string`, `type:string`, `queryMode:string`, `caseSensitive:boolean=false`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `distinct:boolean=false`, `limit:integer=50`, `offset:integer=0` |
+| `type_lookup` | CLI | 按精确名、通配符或正则查找类型。MCP 下禁用建索引。 | `path*:string`, `query*:string`, `queryMode:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `caseSensitive:boolean=false`, `limit:integer=50`, `offset:integer=0` |
+| `type_hierarchy` | CLI | 展示目标类父类、接口、子类和实现层次。MCP 下禁用建索引。 | `path*:string`, `className*:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=8`, `maxNodes:integer=256` |
+| `find_references` | CLI | 查找类型、字段或方法引用。MCP 下禁用建索引。 | `path*:string`, `kind*:string`, `className*:string`, `fieldName:string`, `methodName:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=1`, `maxNodes:integer=256` |
+| `method_overrides` | CLI | 查找方法覆写和接口实现关系。MCP 下禁用建索引。 | `path*:string`, `className*:string`, `methodName*:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=8`, `maxNodes:integer=256` |
+| `resolve_symbol` | CLI | 解析类型、字段或方法符号到内部名、descriptor 和声明匹配。MCP 下禁用建索引。 | `path*:string`, `className:string`, `fieldName:string`, `methodName:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string` |
+| `call_chain` | CLI | 构建静态 caller/callee 调用链；方向为 `callers`、`callees` 或 `both`。MCP 下禁用建索引。 | `path*:string`, `className*:string`, `methodName*:string`, `descriptor:string`, `direction:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=3`, `maxNodes:integer=128` |
 
 ## 日志、源码与依赖
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
-| `resolve_stacktrace` | MCP | 把 Java stacktrace 或日志帧解析到类、方法、候选归档和反编译行映射。 | `path*:string`, `text:string`, `textPath:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `maxFrames:integer=200`, `lineMappingLimitPerFrame:integer=1` |
-| `analyze_log` | MCP | `resolve_stacktrace` 的别名入口，用于日志分析。 | `path*:string`, `text:string`, `textPath:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `maxFrames:integer=200`, `lineMappingLimitPerFrame:integer=1` |
+| `resolve_stacktrace` | CLI | 把 Java stacktrace 或日志帧解析到类、方法、候选归档和反编译行映射。MCP 下禁用建索引。 | `path*:string`, `text:string`, `textPath:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `maxFrames:integer=200`, `lineMappingLimitPerFrame:integer=1` |
+| `analyze_log` | CLI | `resolve_stacktrace` 的别名入口，用于日志分析。MCP 下禁用建索引。 | `path*:string`, `text:string`, `textPath:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `maxFrames:integer=200`, `lineMappingLimitPerFrame:integer=1` |
 | `source_lookup` | MCP | 从本地 sources jar、兄弟 `-sources.jar` 或 Maven 坐标查找原始源码。 | `path:string`, `className:string`, `sourceJarPath:string`, `groupId:string`, `artifactId:string`, `version:string`, `sha1:string`, `sha1File:string`, `configPath:string`, `searchProvider:string`, `searchBaseUrl:string`, `remoteContentBaseUrl:string`, `proxyHost:string`, `proxyPort:string`, `username:string`, `password:string`, `bearerToken:string`, `saveTo:string` |
-| `list_dependencies` | MCP | 扫描 `META-INF/maven/**/pom.properties` 并列出嵌入 Maven 坐标。 | `path*:string`, `format:string`, `output:string`, `limit:integer=500` |
+| `list_dependencies` | MCP | 扫描 `META-INF/maven/**/pom.properties` 并列出嵌入 Maven 坐标。 | `path*:string`, `format:string`, `output:string`, `limit:integer=500`, `offset:integer=0` |
 | `build_skeleton` | MCP | 从归档推断依赖坐标并生成 Maven/Gradle 构建骨架。 | `path*:string`, `files:string|array`, `outputDir:string`, `configPath:string`, `searchProvider:string`, `searchBaseUrl:string`, `remoteContentBaseUrl:string`, `proxyHost:string`, `proxyPort:string`, `username:string`, `password:string`, `bearerToken:string` |
 
 ## 字节码、CFG、比较与诊断
