@@ -35,8 +35,8 @@ public final class EngineCatalog {
         register(DecompilerEngines.CFR, "Broadly compatible decompiler with stable output", "fast", "accurate");
         register(DecompilerEngines.PROCYON, "Decompiler with readable output and useful line-number options", "accurate", "debuggable");
         register(DecompilerEngines.FERNFLOWER, "Classic analytical decompiler", "accurate");
-        register(DecompilerEngines.VINEFLOWER, "Most accurate modern Java-focused decompiler", "accurate");
-        register(DecompilerEngines.JADX, "Decompiler for JVM classes and Android-oriented inputs", "accurate", "debuggable");
+        register(DecompilerEngines.VINEFLOWER, "Most accurate modern Java-focused decompiler, first choice in auto", "fast", "accurate", "debuggable");
+        register(DecompilerEngines.JADX, "Decompiler for JVM classes and Android-oriented inputs, last resort in auto", "accurate", "debuggable");
     }
 
     private EngineCatalog() {
@@ -55,9 +55,9 @@ public final class EngineCatalog {
 
     public static JsonArray profilesJson() {
         JsonArray profiles = new JsonArray();
-        profiles.add(profileJson("fast", "Prioritize throughput; auto starts with JD-Core v1/v0 patching, then fast fallback order."));
-        profiles.add(profileJson("accurate", "Prioritize output quality; auto starts with JD-Core v1/v0 patching, then favors Vineflower/CFR fallbacks."));
-        profiles.add(profileJson("debuggable", "Prioritize line number metadata and patch/debug readability; auto starts with JD-Core v1/v0 patching and lineNumbers defaults to true."));
+        profiles.add(profileJson("fast", "Auto: Vineflower → CFR → Procyon → JD-Core v1+v0 patch → JADX."));
+        profiles.add(profileJson("accurate", "Auto: Vineflower → CFR → Procyon → JD-Core v1+v0 patch → Fernflower → JADX."));
+        profiles.add(profileJson("debuggable", "Auto: Vineflower → CFR → Procyon → JD-Core v1+v0 patch → Fernflower → JADX. lineNumbers defaults to true."));
         return profiles;
     }
 

@@ -11,9 +11,6 @@ final class DecompilerAttemptPolicy {
 
     static List<String> fallbackOrder(DecompilerOptions options) {
         LinkedHashSet<String> order = new LinkedHashSet<>();
-        order.add(DecompilerEngines.VINEFLOWER);
-        order.add(DecompilerEngines.CFR);
-        order.add(DecompilerEngines.PROCYON);
         switch (options.profile()) {
             case "accurate", "debuggable" -> order.add(DecompilerEngines.FERNFLOWER);
             default -> {} // fast: skip Fernflower

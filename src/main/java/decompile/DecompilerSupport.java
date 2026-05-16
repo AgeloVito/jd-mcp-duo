@@ -41,40 +41,49 @@ public final class DecompilerSupport {
                                               Map<String, String> engineFailures) throws Exception {
         List<String> attempted = new ArrayList<>(attemptedEngines);
         LinkedHashMap<String, String> failures = new LinkedHashMap<>(engineFailures);
+        String internalName = classLocation.internalName();
+        String requestedEngine = options.requestedEngine();
 
-        DecompilationResult v1Result = attemptEngine(loader, classLocation, options, DecompilerEngines.JD_CORE_V1, attempted, failures, true);
-        if (v1Result != null && DecompilerAttemptPolicy.isUsableOutput(v1Result.getDecompiledOutput())) {
-            return outcome(options, classLocation.internalName(), options.requestedEngine(), DecompilerEngines.JD_CORE_V1, false, false, false, false, false, attempted, failures, v1Result);
+        // Phase 1: modern external engines (best quality first)
+        DecompilationResult result = attemptEngine(loader, classLocation, options, DecompilerEngines.VINEFLOWER, attempted, failures, false);
+        if (result != null) {
+            return outcome(options, internalName, requestedEngine, DecompilerEngines.VINEFLOWER, false, false, false, false, false, attempted, failures, result);
+        }
+        result = attemptEngine(loader, classLocation, options, DecompilerEngines.CFR, attempted, failures, false);
+        if (result != null) {
+            return outcome(options, internalName, requestedEngine, DecompilerEngines.CFR, false, false, false, false, false, attempted, failures, result);
+        }
+        result = attemptEngine(loader, classLocation, options, DecompilerEngines.PROCYON, attempted, failures, false);
+        if (result != null) {
+            return outcome(options, internalName, requestedEngine, DecompilerEngines.PROCYON, false, false, false, false, false, attempted, failures, result);
         }
 
-        DecompilationResult v0Result = null;
+        // Phase 2: JD-Core v1 + v0 method-level patch (traditional fallback)
+        DecompilationResult v1Result = attemptEngine(loader, classLocation, options, DecompilerEngines.JD_CORE_V1, attempted, failures, true);
+        if (v1Result != null && DecompilerAttemptPolicy.isUsableOutput(v1Result.getDecompiledOutput())) {
+            return outcome(options, internalName, requestedEngine, DecompilerEngines.JD_CORE_V1, false, false, false, false, false, attempted, failures, v1Result);
+        }
         if (v1Result != null) {
-            v0Result = attemptEngine(loader, classLocation, options, DecompilerEngines.JD_CORE_V0, attempted, failures, true);
+            DecompilationResult v0Result = attemptEngine(loader, classLocation, options, DecompilerEngines.JD_CORE_V0, attempted, failures, true);
             if (v0Result != null) {
-                DecompilationOutcome patchedOutcome = patchV1Result(
-                        v1Result,
-                        v0Result,
-                        classLocation.internalName(),
-                        options.requestedEngine(),
-                        contextUri,
-                        resolver.parserClasspathEntries(),
-                        attempted,
-                        failures,
-                        options.preferenceWarningsForAttempts(attempted)
-                );
+                DecompilationOutcome patchedOutcome = patchV1Result(v1Result, v0Result, internalName, requestedEngine,
+                        contextUri, resolver.parserClasspathEntries(), attempted, failures,
+                        options.preferenceWarningsForAttempts(attempted));
                 if (patchedOutcome != null) {
                     return patchedOutcome;
                 }
                 if (DecompilerAttemptPolicy.isUsableOutput(v0Result.getDecompiledOutput())) {
-                    return outcome(options, classLocation.internalName(), options.requestedEngine(), DecompilerEngines.JD_CORE_V0, false, true, false, false, false, attempted, failures, v0Result);
+                    return outcome(options, internalName, requestedEngine, DecompilerEngines.JD_CORE_V0,
+                            false, true, false, false, false, attempted, failures, v0Result);
                 }
             }
         }
 
+        // Phase 3: remaining engines
         for (String engine : DecompilerAttemptPolicy.fallbackOrder(options)) {
-            DecompilationResult result = attemptEngine(loader, classLocation, options, engine, attempted, failures, false);
+            result = attemptEngine(loader, classLocation, options, engine, attempted, failures, false);
             if (result != null) {
-                return outcome(options, classLocation.internalName(), options.requestedEngine(), engine, false, true, false, false, false, attempted, failures, result);
+                return outcome(options, internalName, requestedEngine, engine, false, true, false, false, false, attempted, failures, result);
             }
         }
 
