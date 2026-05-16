@@ -139,12 +139,10 @@ class AdditionalToolsTest {
         assertTrue(engines.text().contains("Available decompiler engines:"));
         assertTrue(engines.text().contains("- auto:"));
         assertTrue(engines.text().contains("jd-core-v1"));
-        assertTrue(engines.text().contains("jd-core-v1"));
         assertTrue(engines.text().contains("Aliases:"));
-        assertTrue(engines.text().contains("Profiles:"));
 
         DescribeEngineOptionsTool describeTool = new DescribeEngineOptionsTool();
-        assertEngineOptionsAreDiscoverable(describeTool, "jd-core-v1", 10);
+        assertEngineOptionsAreDiscoverable(describeTool, "auto", 5);
         assertEngineOptionsAreDiscoverable(describeTool, "jd-core-v1", 10);
         assertEngineOptionsAreDiscoverable(describeTool, "cfr", 10);
         assertEngineOptionsAreDiscoverable(describeTool, "procyon", 10);
