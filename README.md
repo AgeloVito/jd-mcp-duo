@@ -48,7 +48,7 @@ Examples of security analysis scenarios this MCP service can support when connec
 jd-mcp-duo (this project)
 ├── MCP protocol layer — JSON-RPC 2.0 over stdio
 ├── CLI mode — command-line access without MCP
-├── 33 tools — decompile, search, analyze, compare
+├── 34 tools — decompile, search, analyze, compare
 ├── SQLite index — cross-archive call graph and type hierarchy
 └── archive abstraction — JAR/WAR/DEX/APK/directory input
 ```
@@ -61,10 +61,9 @@ All engines are accessed through `transformer-api`. The engine suite includes:
 
 | Engine | Description |
 |---|---|
-| auto | Multi-engine fallback strategy (default) — tries JD-Core v1 first, falls back through v0 patching, Vineflower, CFR, Procyon, Fernflower, then JADX |
-| JD-Core v1 | Analytical decompiler |
+| auto | Multi-engine fallback (default) — Vineflower → CFR → JD-Core v1+v0 patch → JADX |
+| JD-Core v1 | Analytical decompiler with v0 method patching on failure |
 | JD-Core v0 | Pattern-matching decompiler (fallback + method patch source) |
-| JD-Core Duo | v1 with v0 method patching on failure |
 | CFR | Broadly compatible, stable output |
 | Procyon | Readable output with line-number options |
 | Fernflower | Classic analytical decompiler |

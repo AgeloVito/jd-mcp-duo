@@ -48,7 +48,7 @@ jd-mcp-duo 将反编译、静态调用链、跨归档全文搜索和资源提取
 jd-mcp-duo（本项目）
 ├── MCP 协议层 — JSON-RPC 2.0 over stdio
 ├── CLI 模式 — 无需 MCP 的命令行调用
-├── 33 个工具 — 反编译、搜索、分析、对比
+├── 34 个工具 — 反编译、搜索、分析、对比
 ├── SQLite 索引 — 跨归档调用图和类型层次
 └── 归档抽象 — JAR/WAR/DEX/APK/目录输入
 ```
@@ -61,10 +61,9 @@ jd-mcp-duo（本项目）
 
 | 引擎 | 说明 |
 |---|---|
-| auto | 多引擎 fallback 策略（默认）— 优先 JD-Core v1，依次回退 v0 修补、Vineflower、CFR、Procyon、Fernflower、JADX |
-| JD-Core v1 | 分析型反编译器 |
+| auto | 多引擎 fallback（默认）— Vineflower → CFR → JD-Core v1+v0 patch → JADX |
+| JD-Core v1 | 分析型反编译器（含 v0 方法修补） |
 | JD-Core v0 | 模式匹配型反编译器（fallback + 方法修补源） |
-| JD-Core Duo | v1 输出中失败的方法自动用 v0 修补 |
 | CFR | 兼容性广，输出稳定 |
 | Procyon | 可读性好，支持行号选项 |
 | Fernflower | 经典分析型反编译器 |
