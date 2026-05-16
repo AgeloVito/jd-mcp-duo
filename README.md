@@ -39,7 +39,7 @@ Examples of security analysis scenarios this MCP service can support when connec
 - **Stack trace resolution** — The agent uses `resolve_stacktrace` to resolve each frame of an exception stack trace to a line-level position in the decompiled source, quickly pinpointing the exact code that triggered the exception
 
   ```bash
-  resolve_stacktrace --path=app.jar --stacktrace=crash.log
+  resolve_stacktrace --path=app.jar --textPath=crash.log
   ```
 
 ## Architecture
@@ -201,7 +201,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Input directory |
 | `outputDir` | yes | Output directory |
-| `recursive` | no | Recursively scan subdirectories (default: true) |
+| `recursive` | no | Recursively scan subdirectories (default: false) |
 
 ```bash
 ./bin/jd-mcp-duo decompile_directory --path=./input --outputDir=./output --engine=jadx
@@ -212,36 +212,50 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Directory to analyze |
-| `recursive` | no | Recursively scan subdirectories (default: true) |
+| `recursive` | no | Recursively scan subdirectories (default: false) |
 | `limit` | no | Maximum archives to return (default: 200) |
 
 ```bash
 ./bin/jd-mcp-duo analyze_directory --path=./libs
 ```
 
-**`batch_decompile`** — Decompile multiple specific classes from a directory root.
+**`batch_decompile`** — Decompile classes from a directory root, with optional `limit` and `outputDir`.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Directory root containing class files |
-| `classes` | yes | Comma-separated list of class names to decompile |
+| `limit` | no | Maximum classes to decompile (default: 0 = all) |
 
 ```bash
-./bin/jd-mcp-duo batch_decompile --path=./classes --classes=com.a.Foo,com.b.Bar
+./bin/jd-mcp-duo batch_decompile --path=./classes --limit=200
 ```
 
-**`batch_decompile_jars`** — Decompile specific classes across multiple archives in a directory.
+**`batch_decompile_jars`** — Decompile classes across multiple archives in a directory.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Directory containing archives |
-| `classes` | yes | Comma-separated list of class names to decompile |
+| `recursive` | no | Scan subdirectories (default: false) |
+| `pattern` | no | Glob pattern filter |
 
 ```bash
-./bin/jd-mcp-duo batch_decompile_jars --path=./libs --classes=com.a.Foo,com.b.Bar
+./bin/jd-mcp-duo batch_decompile_jars --path=./libs --recursive=true --pattern="*.jar"
 ```
 
 ### Inspection
+
+**`index_scope`** — Build or refresh the SQLite cross-archive index. Run before `search_in_jar`, `call_chain`, etc. to avoid blocking during queries.
+
+| Parameter | Required | Description |
+|---|---|---|
+| `path` | yes | Primary archive or directory |
+| `scopePath` | no | Additional directory of archives to index |
+| `scopeRecursive` | no | Recursively scan scopePath (default: false) |
+| `indexPath` | no | Custom SQLite index path (default: `~/.jd-mcp-duo/index.sqlite`) |
+
+```bash
+./bin/jd-mcp-duo index_scope --path=./app.jar --scopePath=./lib --scopeRecursive=true
+```
 
 **`list_classes`** — List classes in an archive or directory with normalized names and package statistics.
 
@@ -303,11 +317,11 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Primary input path |
-| `className` | yes | Type name (exact, `*pattern`, or `/regex/`) |
+| `query` | yes | Type name (exact, `*pattern`, or `/regex/`) |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
-./bin/jd-mcp-duo type_lookup --path=app.jar --className='*Service' --scopePath=./libs
+./bin/jd-mcp-duo type_lookup --path=app.jar --query='*Service' --scopePath=./libs
 ```
 
 **`type_hierarchy`** — Build supertype and subtype hierarchy trees for a class. Searches across all scoped archives using the SQLite index.
@@ -315,7 +329,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Primary input path |
-| `className` | yes | Class name |
+| `className` | no | Class name |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
@@ -329,12 +343,11 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | `path` | yes | Primary input path |
 | `className` | yes | Target class name |
 | `kind` | no | `type`, `method`, or `field` |
-| `memberName` | no | Method or field name (for method/field references) |
-| `descriptor` | no | JVM descriptor for overload resolution |
+| `methodName` or `fieldName` | no | Method or field name |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
-./bin/jd-mcp-duo find_references --path=app.jar --className=com.example.Util --kind=method --memberName=format
+./bin/jd-mcp-duo find_references --path=app.jar --className=com.example.Util --kind=method --methodName=format
 ```
 
 **`method_overrides`** — Find override and implementation relationships for a method. Shows which methods override the target and which methods the target overrides.
@@ -343,8 +356,6 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Primary input path |
 | `className` | yes | Declaring class name |
-| `methodName` | yes | Method name |
-| `descriptor` | no | JVM descriptor for overload resolution |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
@@ -357,12 +368,12 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Primary input path |
 | `className` | yes | Declaring class name |
-| `symbolName` | yes | Symbol name (type, field, or method) |
-| `kind` | no | `type`, `field`, or `method` (default: method) |
+| `className` | no | Class name |
+| `methodName` or `fieldName` | no | Method or field name |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
-./bin/jd-mcp-duo resolve_symbol --path=app.jar --className=com.example.Service --symbolName=process --kind=method
+./bin/jd-mcp-duo resolve_symbol --path=app.jar --className=com.example.Service --methodName=process
 ```
 
 **`resolve_stacktrace`** (alias: `analyze_log`) — Parse Java stack trace or log text, resolve each frame to its declaring class, method, descriptor, candidate source archives, and decompiled line number mappings.
@@ -370,12 +381,12 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Primary input path |
-| `stacktrace` | yes | Stack trace or log text |
+| `text` or `textPath` | yes | Stack trace text or .log file path |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
-./bin/jd-mcp-duo resolve_stacktrace --path=app.jar --stacktrace=stacktrace.log
-./bin/jd-mcp-duo analyze_log --path=app.jar --stacktrace=stacktrace.log
+./bin/jd-mcp-duo resolve_stacktrace --path=app.jar --textPath=stacktrace.log
+./bin/jd-mcp-duo analyze_log --path=app.jar --textPath=stacktrace.log
 ```
 
 **`source_lookup`** — Look up original source code from a local sources JAR, sibling `-sources.jar`, or Maven Central using SHA-1 coordinates.
@@ -384,11 +395,9 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Primary input path |
 | `className` | no | Class name to look up |
-| `methodName` | no | Method name for method-level lookup |
-| `lineNumber` | no | Line number for position-level lookup |
 
 ```bash
-./bin/jd-mcp-duo source_lookup --path=app.jar --className=com.example.Main --lineNumber=42
+./bin/jd-mcp-duo source_lookup --path=app.jar --className=com.example.Main
 ```
 
 **`call_chain`** — Build a static caller/callee chain with BFS traversal. Uses Class Hierarchy Analysis (CHA) to resolve `invokevirtual`/`invokeinterface` calls to concrete implementations within the indexed scope.
@@ -397,8 +406,6 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `path` | yes | Path to a supported archive or directory |
 | `className` | yes | Declaring class name |
-| `methodName` | yes | Method name |
-| `descriptor` | no | JVM descriptor for overload resolution |
 | `direction` | no | `callers`, `callees`, or `both` (default: both) |
 | `depth` | no | Recursion depth (default: 3) |
 | `maxNodes` | no | Maximum nodes returned (default: 128) |
@@ -427,9 +434,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Input path |
-| `className` | yes | Class name |
-| `methodName` | yes | Method name |
-| `descriptor` | no | JVM descriptor for overload resolution |
+| `className` | no | Class name |
 
 ```bash
 ./bin/jd-mcp-duo show_bytecode --path=app.jar --className=com.example.Main --methodName=main --descriptor='([Ljava/lang/String;)V'
@@ -440,9 +445,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Input path |
-| `className` | yes | Class name |
-| `methodName` | yes | Method name |
-| `descriptor` | no | JVM descriptor for overload resolution |
+| `className` | no | Class name |
 
 ```bash
 ./bin/jd-mcp-duo show_cfg --path=app.jar --className=com.example.Main --methodName=process
@@ -467,7 +470,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 |---|---|---|
 | `leftPath` | yes | Left-side input path |
 | `rightPath` | no | Right-side path (defaults to leftPath) |
-| `className` | yes | Class name |
+| `className` | no | Class name |
 | `leftEngine` | no | Engine for left side (default: auto) |
 | `rightEngine` | no | Engine for right side (default: auto) |
 
@@ -480,7 +483,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Input path |
-| `className` | yes | Class name |
+| `className` | no | Class name |
 
 ```bash
 ./bin/jd-mcp-duo compare_jd_core --path=app.jar --className=com.example.Complex
@@ -493,7 +496,7 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Primary archive or directory |
-| `scopePath` | no | Additional archives for dependency inference |
+| `files` | no | Additional archive paths |
 | `outputDir` | no | Directory to write generated pom.xml, build.gradle, and mvn_deploy.bat |
 
 ```bash

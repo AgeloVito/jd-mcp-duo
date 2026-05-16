@@ -75,8 +75,8 @@ class_metadata(path=target.jar, className=..)    -> 查看类、方法、字段�
 ```text
 index_scope(path=app.jar, scopePath=./lib, scopeRecursive=true)
                                                -> 建索引，有进度条，后续查询秒回
-search_in_jar(path=app.jar, query="...", type=string, noBuild=true)
-                                               -> 只查已有索引，不建
+search_in_jar(path=app.jar, query="...", type=string)
+                                               -> 只查已有索引（MCP 下自动禁止建索引）
 ```
 
 ### 反编译源码审阅
@@ -165,7 +165,7 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 
 | 引擎 | 行为 |
 |------|------|
-| `auto` | 默认。APK/DEX 先尝试 native JADX；普通 class 先 JD-Core v1。如果 v1 输出有失败标记，则尝试 JD-Core v0 并做方法级 patch；仍不可用时按 JADX fallback。 |
+| `auto` | 默认。Vineflower → CFR → JD-Core v1+v0 方法级 patch → JADX。 |
 | `jd-core-v1` / `jd-core` / `jd` | 只要求 JD-Core v1 成功；失败时可尝试 v0 patch，但不会切外部引擎。 |
 | `jd-core-v0` / `v0` | 只用 JD-Core v0。 |
 | `vineflower` / `vf` | 现代 Java 准确性优先，安全审计和复杂语法常用。 |

@@ -22,7 +22,7 @@
 ## 引擎和输出元数据
 
 - 常用别名：`jd-core`/`jd`、`v0`、`ff`、`vf`。
-- `auto`：APK/DEX 先 native JADX；普通 class 先 JD-Core v1，失败标记时用 JD-Core v0 方法级 patch，再按 JADX fallback。
+- `auto`：Vineflower → CFR → JD-Core v1+v0 方法级 patch → JADX。
 - `lineNumbers=true` 只返回 line mapping 元数据；要把行号写进源码文本，用 `renderLineNumbers=decompiled|source|both`。
 - 常见结构化反编译字段：`engineRequested`、`engineUsed`、`patched`、`fallbackUsed`、`metadataLimited`、`metadataRebuilt`、`nativeAndroid`、`methodPatches`、`attemptedEngines`、`engineFailures`、`warnings`、`source`、`declarations`、`references`、`hyperlinks`、`lineNumbers`。
 

@@ -39,7 +39,7 @@ jd-mcp-duo 将反编译、静态调用链、跨归档全文搜索和资源提取
 - **堆栈回溯定位** — Agent 通过 `resolve_stacktrace` 将异常堆栈日志中的每一帧解析到反编译源码的行级位置，快速定位触发异常的具体代码
 
   ```bash
-  resolve_stacktrace --path=app.jar --stacktrace=crash.log
+  resolve_stacktrace --path=app.jar --text=crash.log
   ```
 
 ## 架构
@@ -205,16 +205,29 @@ claude mcp get jd-mcp-duo
 **`batch_decompile`** — 从目录根路径批量反编译指定的多个类。
 
 ```bash
-./bin/jd-mcp-duo batch_decompile --path=./classes --classes=com.a.Foo,com.b.Bar
+./bin/jd-mcp-duo batch_decompile --path=./classes --limit=200
 ```
 
 **`batch_decompile_jars`** — 从目录中的多个归档批量反编译指定类。
 
 ```bash
-./bin/jd-mcp-duo batch_decompile_jars --path=./libs --classes=com.a.Foo,com.b.Bar
+./bin/jd-mcp-duo batch_decompile_jars --path=./libs --recursive=true --pattern="*.jar"
 ```
 
 ### 查看
+
+**`index_scope`** — 建立或刷新 SQLite 跨归档索引。在 `search_in_jar`、`call_chain` 等查询前运行，避免阻塞。
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `path` | 是 | 主归档或目录 |
+| `scopePath` | 否 | 额外归档目录 |
+| `scopeRecursive` | 否 | 递归扫描 scopePath（默认：false） |
+| `indexPath` | 否 | 自定义索引路径（默认：`~/.jd-mcp-duo/index.sqlite`） |
+
+```bash
+./bin/jd-mcp-duo index_scope --path=./app.jar --scopePath=./lib --scopeRecursive=true
+```
 
 **`list_classes`** — 列出归档或目录中的所有类，包含规范化的类名和包统计信息。
 
@@ -258,7 +271,7 @@ claude mcp get jd-mcp-duo
 **`type_lookup`** — 跨当前输入和可选 scope 按精确名称、通配符或正则查找类型声明。
 
 ```bash
-./bin/jd-mcp-duo type_lookup --path=app.jar --className='*Service' --scopePath=./libs
+./bin/jd-mcp-duo type_lookup --path=app.jar --query='*Service' --scopePath=./libs
 ```
 
 **`type_hierarchy`** — 构建类的父类和子类层次树。使用 SQLite 索引跨所有 scope 归档搜索。
@@ -270,7 +283,7 @@ claude mcp get jd-mcp-duo
 **`find_references`** — 在索引范围内查找类型、字段或方法的所有引用。从字节码指令中解析方法引用、字段引用和类型使用。
 
 ```bash
-./bin/jd-mcp-duo find_references --path=app.jar --className=com.example.Util --kind=method --memberName=format
+./bin/jd-mcp-duo find_references --path=app.jar --className=com.example.Util --kind=method --methodName=format
 ```
 
 **`method_overrides`** — 查找方法的重写和实现关系。展示哪些方法重写了目标方法，以及目标方法重写了哪些方法。
@@ -282,14 +295,14 @@ claude mcp get jd-mcp-duo
 **`resolve_symbol`** — 将类型、字段或方法符号解析为内部名称、JVM 描述符和匹配的声明。对重载方法列出所有候选项。
 
 ```bash
-./bin/jd-mcp-duo resolve_symbol --path=app.jar --className=com.example.Service --symbolName=process --kind=method
+./bin/jd-mcp-duo resolve_symbol --path=app.jar --className=com.example.Service --methodName=process
 ```
 
 **`resolve_stacktrace`**（别名：`analyze_log`）— 解析 Java 堆栈或日志文本，将每一帧解析到声明类、方法、描述符、候选源归档和反编译行号映射。
 
 ```bash
-./bin/jd-mcp-duo resolve_stacktrace --path=app.jar --stacktrace=stacktrace.log
-./bin/jd-mcp-duo analyze_log --path=app.jar --stacktrace=stacktrace.log
+./bin/jd-mcp-duo resolve_stacktrace --path=app.jar --textPath=stacktrace.log
+./bin/jd-mcp-duo analyze_log --path=app.jar --textPath=stacktrace.log
 ```
 
 **`source_lookup`** — 从本地源码 JAR、同级 `-sources.jar` 或通过 SHA-1 坐标从 Maven Central 查找原始源码。
@@ -362,7 +375,7 @@ claude mcp get jd-mcp-duo
 | 参数 | 必填 | 说明 |
 |---|---|---|
 | `path` | 是 | 主归档或目录 |
-| `scopePath` | 否 | 用于依赖推断的额外归档 |
+| `files` | 否 | 额外归档路径 |
 | `outputDir` | 否 | 输出目录，写入 pom.xml、build.gradle 和 mvn_deploy.bat |
 
 ```bash
