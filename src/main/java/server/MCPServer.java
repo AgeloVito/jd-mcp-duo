@@ -345,7 +345,7 @@ public class MCPServer {
         ProgressReporter reporter = new ProgressReporter(progressToken, toolName, StdoutGuard.originalStdout());
         reporter.report(0, 0); // send start notification
 
-        sqlite.PersistentScopeIndex.setDisableBuild(true);
+        sqlite.PersistentScopeIndex.disableBuild();
         try {
             ToolResult result = StdoutGuard.callSilenced(() -> tool.execute(arguments, reporter));
             reporter.done(); // send completion notification
@@ -386,7 +386,7 @@ public class MCPServer {
             resultObj.addProperty("isError", true);
             return createSuccessResponse(id, resultObj);
         } finally {
-            sqlite.PersistentScopeIndex.setDisableBuild(false);
+            sqlite.PersistentScopeIndex.clearDisableBuild();
         }
     }
 

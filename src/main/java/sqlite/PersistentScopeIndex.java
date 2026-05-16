@@ -20,10 +20,18 @@ public final class PersistentScopeIndex {
 
     private static final ThreadLocal<Boolean> disableBuild = new ThreadLocal<>();
 
-    /** Called by MCP server to prevent any index building via MCP tools. */
-    public static void setDisableBuild(boolean disabled) {
-        if (disabled) disableBuild.set(true);
-        else disableBuild.remove();
+    /** Called by MCP server to prevent index building via MCP tools. */
+    public static void disableBuild() {
+        disableBuild.set(true);
+    }
+
+    /** Must be called in finally block after tool execution. */
+    public static void clearDisableBuild() {
+        disableBuild.remove();
+    }
+
+    private static boolean isBuildDisabled() {
+        return Boolean.TRUE.equals(disableBuild.get());
     }
 
     private PersistentScopeIndex(Path databasePath, List<Path> scopePaths, List<IndexFailure> indexFailures) {
@@ -42,8 +50,7 @@ public final class PersistentScopeIndex {
 
     public static PersistentScopeIndex open(Path primaryPath, Path scopePath, boolean recursive,
                                             Path indexPath, boolean buildIfMissing) throws Exception {
-        boolean forceNoBuild = Boolean.TRUE.equals(disableBuild.get());
-        if (forceNoBuild && buildIfMissing) {
+        if (isBuildDisabled() && buildIfMissing) {
             throw new IOException("Index building is disabled in this mode. "
                     + "Use CLI to build the index with index_scope first.");
         }
