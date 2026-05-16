@@ -113,7 +113,8 @@ public class SearchInJarTool implements MCPTool {
                                              JsonArray results,
                                              StringBuilder text,
                                              int limit,
-                                             String pathLike) throws Exception {
+                                             String pathLike,
+                                             int[] totalMatched) throws Exception {
         if (!matchesType(type, "resource", "xml", "properties", "service", "services", "manifest", "yaml", "yml", "json", "all", "allresources")) {
             return 0;
         }
