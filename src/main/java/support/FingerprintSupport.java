@@ -27,19 +27,15 @@ public final class FingerprintSupport {
     }
 
     public static String sha256Hex(byte[] content) {
-        return toHex(newSha256(content));
+        return toHex(sha256().digest(content));
     }
 
-    private static MessageDigest newSha256() {
+    private static MessageDigest sha256() {
         try {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
-    }
-
-    private static byte[] newSha256(byte[] content) {
-        return newSha256().digest(content);
     }
 
     public static String toHex(byte[] bytes) {
