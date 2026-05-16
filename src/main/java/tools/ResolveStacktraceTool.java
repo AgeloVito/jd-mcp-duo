@@ -47,7 +47,7 @@ public class ResolveStacktraceTool implements MCPTool {
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
         SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
-        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", false);
+        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", true);
         SchemaSupport.addString(properties, "engine", "Decompiler engine for line mapping");
         SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
         SchemaSupport.addInteger(properties, "maxFrames", "Maximum number of frame entries to resolve", 200);
@@ -67,7 +67,7 @@ public class ResolveStacktraceTool implements MCPTool {
                 ? JsonUtils.getPath(arguments, "scopePath")
                 : null;
         Path indexPath = JsonUtils.getPath(arguments, "indexPath");
-        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", false);
+        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", true);
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 primaryPath,
                 scopePath,

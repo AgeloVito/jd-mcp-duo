@@ -33,7 +33,7 @@ public class ResolveSymbolTool implements MCPTool {
         SchemaSupport.addString(properties, "scopePath", "Optional multi-archive scope path");
         SchemaSupport.addBoolean(properties, "scopeRecursive", "Recursively scan scopePath when it is a directory", false);
         SchemaSupport.addString(properties, "indexPath", "Optional path for the SQLite index file; defaults to ~/.jd-mcp-duo/index.sqlite");
-        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", false);
+        SchemaSupport.addBoolean(properties, "noBuild", "Only query existing index; do not build if missing or stale", true);
         SchemaSupport.require(schema, "path");
         return schema;
     }
@@ -42,7 +42,7 @@ public class ResolveSymbolTool implements MCPTool {
     public ToolResult execute(JsonObject arguments) throws Exception {
         long startedAt = System.nanoTime();
         Path indexPath = JsonUtils.getPath(arguments, "indexPath");
-        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", false);
+        boolean noBuild = JsonUtils.getBoolean(arguments, "noBuild", true);
         PersistentScopeIndex scope = PersistentScopeIndex.open(
                 JsonUtils.getRequiredPath(arguments, "path"),
                 arguments.has("scopePath") && !JsonUtils.getString(arguments, "scopePath", "").isBlank()
