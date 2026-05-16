@@ -165,7 +165,7 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 | 引擎信息 | `list_engines` / `describe_engine_options` | `engine` |
 | 工具清单 | `help` | 无 |
 
-完整 30+ 个工具、全部参数、必填标记和关键默认值见 `references/tools.md`。只有需要精确参数表、排查 schema、或用户要求列全量工具时加载该文件。
+完整 30+ 个工具、全部参数、必填标记和关键默认值见 `references/tools.md`。查找工具的完整参数时，MCP 下用 `tools/list`，CLI 下用 `<tool> --help` 获取实时 schema。上述方式不可用或返回不清晰时，再加载 `references/tools.md`。
 
 ## 反编译引擎与 Profile
 
@@ -195,7 +195,7 @@ Profile fallback 顺序：
 
 | 参数 | 默认策略 |
 |------|----------|
-| `--json` | CLI 中需要机器解析时加；只给用户看文本时可不加。 |
+| `--json` | CLI 需要结构化输出时加，用于解析结果；仅给用户看摘要文本时可省略。 |
 | `engine` | 默认不传，让工具使用 `auto`。用户指定引擎时严格尊重。 |
 | `profile` | 默认 `fast`；审计或结果可疑时用 `accurate`；调试行映射时用 `debuggable`。 |
 | `attemptTimeoutMillis` | 默认 30000，一般无需显式传；引擎频繁超时可调大；`0` 禁用超时 |
@@ -218,7 +218,7 @@ Java 包名里的 `.` 是普通文本，不要因此切到 `regex`。正则中�
 ## 输出规范与安全边界
 
 - 已有源码优先直接读取，不反编译。
-- 先缩小范围再批量导出，最好不要直接对用户项目根目录执行无界递归导出。
+- 优先探查结构、收窄范围后再批量导出。如果用户明确要求对项目根目录全量导出，按用户意愿执行。
 - 输出目录建议 `./jd-mcp-duo-output/{artifact-name}/`，或用户明确指定的目录。
 - 不要输出到 jd-mcp-duo 安装目录、`target/` 构建产物目录、系统临时根目录。
 - 如果目标目录已存在且非空，先复用已存在源码或询问是否覆盖；用户明确要求覆盖时再执行。
@@ -235,7 +235,7 @@ Java 包名里的 `.` 是普通文本，不要因此切到 `regex`。正则中�
 | 调用链 | 用缩进树或 Mermaid 展示方向、深度、截断状态。 |
 | 元数据/依赖 | 表格化，保留坐标、版本、类/方法签名。 |
 
-反编译结果要标注来源，例如：`来源: 反编译（jd-mcp-duo auto, engineUsed=vineflower）`。
+反编译结果**必须**标注来源，格式：`来源: 反编译（jd-mcp-duo <engine>, engineUsed=<实际引擎>）`。若结果经过 patch，追加 `, patched`。
 
 ## 常见问题
 

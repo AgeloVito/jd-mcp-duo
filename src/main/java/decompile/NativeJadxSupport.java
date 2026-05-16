@@ -48,7 +48,8 @@ final class NativeJadxSupport {
         try {
             DecompilationResult result = runNativeAttempt(
                     () -> decompile(input, internalName, options),
-                    options.attemptTimeoutMillis()
+                    options.attemptTimeoutMillis(),
+                    internalName + " (jadx-native)"
             );
             return new DecompilationOutcome(
                     internalName,
@@ -70,8 +71,8 @@ final class NativeJadxSupport {
     }
 
     static DecompilationResult runNativeAttempt(Callable<DecompilationResult> callable,
-                                                long timeoutMillis) throws Exception {
-        return DecompilerAttemptRunner.run(callable, timeoutMillis);
+                                                long timeoutMillis, String label) throws Exception {
+        return DecompilerAttemptRunner.run(callable, timeoutMillis, label);
     }
 
     private static DecompilationResult decompile(InputContainer input,

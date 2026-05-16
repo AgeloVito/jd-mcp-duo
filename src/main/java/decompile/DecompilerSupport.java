@@ -418,7 +418,8 @@ public final class DecompilerSupport {
                 () -> ThreadLocalStderrSilencer.callSilenced(
                         () -> StandardTransformers.decompile(loader, internalName, preferences, engine)
                 ),
-                timeoutMillis
+                timeoutMillis,
+                internalName + " (" + engine + ")"
         );
     }
 
