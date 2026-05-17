@@ -24,6 +24,12 @@ public class CompareJdCoreTool extends CompareClassTool {
         SchemaSupport.addBoolean(properties, "lineNumbers", "Include line-number metadata", false);
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
+        SchemaSupport.addString(properties, "leftPath", "Left class/archive path; defaults to path");
+        SchemaSupport.addString(properties, "leftClassName", "Left class name; defaults to className");
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         SchemaSupport.require(schema, "path");
         return schema;
     }

@@ -58,6 +58,11 @@ public class RemoveUnnecessaryCastsTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
         SchemaSupport.addString(properties, "saveTo", "Optional output file");
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version; defaults to the current runtime", Runtime.version().feature());
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         SchemaSupport.require(schema, "path");
         return schema;
     }

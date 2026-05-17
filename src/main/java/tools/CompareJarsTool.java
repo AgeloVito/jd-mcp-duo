@@ -30,10 +30,7 @@ public class CompareJarsTool implements MCPTool {
         JsonObject properties = new JsonObject();
         SchemaSupport.addString(properties, "jar1", "First archive path");
         SchemaSupport.addString(properties, "jar2", "Second archive path");
-        JsonObject detail = new JsonObject();
-        detail.addProperty("type", "boolean");
-        detail.addProperty("default", true);
-        properties.add("detail", detail);
+        SchemaSupport.addBoolean(properties, "detail", "Include per-entry change details", true);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("jar1");

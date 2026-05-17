@@ -34,6 +34,7 @@ public class AnalyzeDirectoryTool implements MCPTool {
         SchemaSupport.addString(properties, "pattern", "Optional glob pattern");
         SchemaSupport.addInteger(properties, "limit", "Maximum archives to return", 200);
         SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
+        SchemaSupport.addString(properties, "output", "Optional output file path to write full results");
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -48,6 +49,9 @@ public class AnalyzeDirectoryTool implements MCPTool {
         String pattern = JsonUtils.getString(arguments, "pattern", "*");
         int limit = JsonUtils.getInt(arguments, "limit", 200);
         int offset = JsonUtils.getInt(arguments, "offset", 0);
+        Path outputPath = extractOutputPath(arguments);
+        int effectiveOffset = outputPath != null ? 0 : offset;
+        int effectiveLimit = outputPath != null ? 0 : limit;
         if (!Files.isDirectory(directory)) {
             throw new IllegalArgumentException("Path must be a directory: " + directory);
         }
@@ -64,9 +68,11 @@ public class AnalyzeDirectoryTool implements MCPTool {
                     .toList();
 
             int totalArchives = paths.size();
-            int start = Math.min(offset, totalArchives);
-            int end = limit > 0 ? Math.min(offset + limit, totalArchives) : totalArchives;
-            paths = paths.subList(start, end);
+            if (outputPath == null) {
+                int start = Math.min(effectiveOffset, totalArchives);
+                int end = effectiveLimit > 0 ? Math.min(effectiveOffset + effectiveLimit, totalArchives) : totalArchives;
+                paths = paths.subList(start, end);
+            }
 
             long totalClasses = 0;
             long totalSize = 0;
@@ -90,17 +96,56 @@ public class AnalyzeDirectoryTool implements MCPTool {
                 }
             }
 
+            if (outputPath != null) {
+                Files.writeString(outputPath, text.toString());
+                truncateToPreview(text, archives, directory.toString(), totalArchives);
+            }
+
             JsonObject structured = new JsonObject();
             structured.addProperty("path", directory.toString());
-            structured.addProperty("archiveCount", archives.size());
+            structured.addProperty("archiveCount", outputPath != null ? totalArchives : archives.size());
             structured.addProperty("totalClasses", totalClasses);
             structured.addProperty("totalSize", totalSize);
+            if (outputPath != null) {
+                structured.addProperty("outputFile", outputPath.toString());
+            }
             int _total = totalArchives;
             structured.addProperty("totalResults", _total);
             structured.addProperty("offset", offset);
             structured.add("archives", archives);
             return ToolResults.structured(text.toString().trim(), structured);
         }
+    }
+
+    private static Path extractOutputPath(JsonObject arguments) {
+        String outputStr = JsonUtils.getString(arguments, "output", "");
+        return outputStr.isBlank() ? null : JsonUtils.getPath(arguments, "output");
+    }
+
+    private static void truncateToPreview(StringBuilder text, JsonArray results,
+                                           String directory, int totalCount) {
+        int previewCount = Math.min(results.size(), 20);
+        JsonArray preview = new JsonArray();
+        for (int i = 0; i < previewCount; i++) {
+            preview.add(results.get(i));
+        }
+        while (results.size() > 0) {
+            results.remove(results.size() - 1);
+        }
+        for (int i = 0; i < preview.size(); i++) {
+            results.add(preview.get(i));
+        }
+        StringBuilder previewText = new StringBuilder();
+        previewText.append("Archive analysis for ").append(directory).append('\n');
+        previewText.append("Full results (").append(totalCount).append(" archives) written to file.\n\n");
+        String[] allLines = text.toString().split("\\R");
+        int shown = 0;
+        for (int i = 2; i < allLines.length && shown < previewCount; i++) {
+            previewText.append(allLines[i]).append('\n');
+            shown++;
+        }
+        text.setLength(0);
+        text.append(previewText);
     }
 
     private static boolean matchesPattern(Path path, String pattern) {

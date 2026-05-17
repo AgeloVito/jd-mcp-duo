@@ -51,6 +51,14 @@ public class ResolveStacktraceTool implements MCPTool {
         SchemaSupport.addInteger(properties, "attemptTimeoutMillis", "Per-engine attempt timeout in milliseconds; 0 disables timeout", (int) decompile.DecompilerOptions.DEFAULT_ATTEMPT_TIMEOUT_MILLIS);
         SchemaSupport.addInteger(properties, "maxFrames", "Maximum number of frame entries to resolve", 200);
         SchemaSupport.addInteger(properties, "lineMappingLimitPerFrame", "Maximum candidate classes with decompiled line mapping per frame; 0 means unlimited", 1);
+        SchemaSupport.addInteger(properties, "releaseVersion", "Target multi-release class version for line mapping; defaults to the current runtime", Runtime.version().feature());
+        SchemaSupport.addBoolean(properties, "lineNumbers", "Include line-number metadata for line mapping", false);
+        SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
+        SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries for line mapping");
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         SchemaSupport.require(schema, "path");
         return schema;
     }
@@ -81,7 +89,6 @@ public class ResolveStacktraceTool implements MCPTool {
         JsonArray entries = new JsonArray();
         StringBuilder text = new StringBuilder();
         int maxFrames = JsonUtils.getInt(arguments, "maxFrames", 200);
-        int offset = JsonUtils.getInt(arguments, "offset", 0);
         int lineMappingLimitPerFrame = JsonUtils.getInt(arguments, "lineMappingLimitPerFrame", 1);
         int resolvedFrames = 0;
         int frameCount = 0;

@@ -49,6 +49,10 @@ public class SaveAllSourcesTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
         SchemaSupport.addBoolean(properties, "verbose", "Include per-file details in result; set false to keep response small", false);
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "output");
         return schema;

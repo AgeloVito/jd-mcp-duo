@@ -48,12 +48,14 @@ public class BatchDecompileJarsTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
         SchemaSupport.addInteger(properties, "classLimit", "Maximum classes per archive", 0);
+        SchemaSupport.addInteger(properties, "jarLimit", "Maximum archives to process; 0 for unlimited", 0);
         SchemaSupport.addBoolean(properties, "summaryOnly", "Only return summary text", false);
         SchemaSupport.addBoolean(properties, "verbose", "Include per-archive details in structured result; set false to keep response small", false);
         SchemaSupport.addString(properties, "outputDir", "Optional output directory");
-        JsonObject preferences = new JsonObject();
-        preferences.addProperty("type", "object");
-        properties.add("preferences", preferences);
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");

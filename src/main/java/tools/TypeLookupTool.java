@@ -1,6 +1,7 @@
 package tools;
 
 import index.ScopedClass;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import model.MCPTool;
 import model.ToolResult;
@@ -33,6 +34,7 @@ public class TypeLookupTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "caseSensitive", "Enable case-sensitive matching", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum results", 50);
         SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
+        SchemaSupport.addString(properties, "output", "Optional output file path to write full results");
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "query");
         return schema;
@@ -45,6 +47,9 @@ public class TypeLookupTool implements MCPTool {
         boolean caseSensitive = JsonUtils.getBoolean(arguments, "caseSensitive", false);
         int limit = JsonUtils.getInt(arguments, "limit", 50);
         int offset = JsonUtils.getInt(arguments, "offset", 0);
+        Path outputPath = extractOutputPath(arguments);
+        int effectiveLimit = outputPath != null ? Integer.MAX_VALUE : limit;
+        int effectiveOffset = outputPath != null ? 0 : offset;
         long startedAt = System.nanoTime();
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
 
@@ -68,7 +73,7 @@ public class TypeLookupTool implements MCPTool {
                 continue;
             }
             totalMatched[0]++;
-            if (totalMatched[0] > offset && matches.size() < limit) {
+            if (totalMatched[0] > effectiveOffset && matches.size() < effectiveLimit) {
                 JsonObject item = new JsonObject();
                 item.addProperty("sourcePath", scopedClass.sourcePath().toString());
                 item.addProperty("internalName", scopedClass.indexedClass().internalName());
@@ -85,9 +90,17 @@ public class TypeLookupTool implements MCPTool {
         structured.addProperty("queryMillis", (System.nanoTime() - startedAt) / 1_000_000L);
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
+        if (outputPath != null) {
+            Files.writeString(outputPath, text.toString());
+            truncateToPreview(text, matches, query, totalMatched);
+        }
+
         int _total = totalMatched[0];
         structured.addProperty("totalResults", _total);
         structured.addProperty("offset", offset);
+        if (outputPath != null) {
+            structured.addProperty("outputFile", outputPath.toString());
+        }
         structured.add("matches", matches);
         return ToolResults.structured(text.toString().trim(), structured);
     }
@@ -116,5 +129,36 @@ public class TypeLookupTool implements MCPTool {
             }
         }
         return regex.toString();
+    }
+
+    private static Path extractOutputPath(JsonObject arguments) {
+        String outputStr = JsonUtils.getString(arguments, "output", "");
+        return outputStr.isBlank() ? null : JsonUtils.getPath(arguments, "output");
+    }
+
+    private static void truncateToPreview(StringBuilder text, JsonArray results,
+                                           String query, int[] totalMatched) {
+        int previewCount = Math.min(results.size(), 20);
+        JsonArray preview = new JsonArray();
+        for (int i = 0; i < previewCount; i++) {
+            preview.add(results.get(i));
+        }
+        while (results.size() > 0) {
+            results.remove(results.size() - 1);
+        }
+        for (int i = 0; i < preview.size(); i++) {
+            results.add(preview.get(i));
+        }
+        StringBuilder previewText = new StringBuilder();
+        previewText.append("Type lookup for ").append(query).append('\n');
+        previewText.append("Full results (").append(totalMatched[0]).append(" matches) written to file.\n\n");
+        String[] allLines = text.toString().split("\\R");
+        int shown = 0;
+        for (int i = 2; i < allLines.length && shown < previewCount; i++) {
+            previewText.append(allLines[i]).append('\n');
+            shown++;
+        }
+        text.setLength(0);
+        text.append(previewText);
     }
 }

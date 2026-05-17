@@ -48,6 +48,10 @@ public class DecompileDirectoryTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "summaryOnly", "Only return summary text without listing every written file; files are still written", false);
         SchemaSupport.addInteger(properties, "fileLimit", "Maximum input files processed, 0 for unlimited", 0);
         SchemaSupport.addBoolean(properties, "verbose", "Include per-file details in result; set false to keep response small", false);
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "outputDir");
         return schema;

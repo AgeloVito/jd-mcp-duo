@@ -35,6 +35,7 @@ public class ListClassesTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "detailed", "Include package statistics", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum classes to return", 200);
         SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
+        SchemaSupport.addString(properties, "output", "Optional output file path to write full results");
         schema.add("properties", properties);
         JsonArray required = new JsonArray();
         required.add("path");
@@ -57,6 +58,9 @@ public class ListClassesTool implements MCPTool {
         boolean detailed = JsonUtils.getBoolean(arguments, "detailed", false);
         int limit = JsonUtils.getInt(arguments, "limit", 200);
         int offset = JsonUtils.getInt(arguments, "offset", 0);
+        Path outputPath = extractOutputPath(arguments);
+        int effectiveOffset = outputPath != null ? 0 : offset;
+        int effectiveLimit = outputPath != null ? 0 : limit;
 
         try (InputContainer container = InputContainers.open(path, releaseVersion)) {
             List<ClassLocation> classes = container.listClasses(true).stream()
@@ -65,9 +69,11 @@ public class ListClassesTool implements MCPTool {
                     .toList();
 
             int totalCount = classes.size();
-            int start = Math.min(offset, totalCount);
-            int end = limit > 0 ? Math.min(offset + limit, totalCount) : totalCount;
-            classes = classes.subList(start, end);
+            if (outputPath == null) {
+                int start = Math.min(effectiveOffset, totalCount);
+                int end = effectiveLimit > 0 ? Math.min(effectiveOffset + effectiveLimit, totalCount) : totalCount;
+                classes = classes.subList(start, end);
+            }
 
             Map<String, Integer> packageCounts = new TreeMap<>();
             JsonArray classArray = new JsonArray();
@@ -98,13 +104,21 @@ public class ListClassesTool implements MCPTool {
                 text.append('\n');
             }
 
+            if (outputPath != null) {
+                Files.writeString(outputPath, text.toString());
+                truncateToPreview(text, classArray, path.toString(), totalCount);
+            }
+
             JsonObject structured = new JsonObject();
             structured.addProperty("path", path.toString());
             structured.addProperty("kind", container.kind());
             structured.addProperty("totalClasses", totalCount);
-            structured.addProperty("showing", classes.size());
-            if (totalCount > classes.size()) {
+            structured.addProperty("showing", outputPath != null ? totalCount : classes.size());
+            if (outputPath == null && totalCount > classes.size()) {
                 text.append("... ").append(totalCount - classes.size()).append(" more classes not shown\n");
+            }
+            if (outputPath != null) {
+                structured.addProperty("outputFile", outputPath.toString());
             }
             int _total = totalCount;
             structured.addProperty("totalResults", _total);
@@ -117,5 +131,36 @@ public class ListClassesTool implements MCPTool {
             }
             return ToolResults.structured(text.toString().trim(), structured);
         }
+    }
+
+    private static Path extractOutputPath(JsonObject arguments) {
+        String outputStr = JsonUtils.getString(arguments, "output", "");
+        return outputStr.isBlank() ? null : JsonUtils.getPath(arguments, "output");
+    }
+
+    private static void truncateToPreview(StringBuilder text, JsonArray results,
+                                           String path, int totalCount) {
+        int previewCount = Math.min(results.size(), 20);
+        JsonArray preview = new JsonArray();
+        for (int i = 0; i < previewCount; i++) {
+            preview.add(results.get(i));
+        }
+        while (results.size() > 0) {
+            results.remove(results.size() - 1);
+        }
+        for (int i = 0; i < preview.size(); i++) {
+            results.add(preview.get(i));
+        }
+        StringBuilder previewText = new StringBuilder();
+        previewText.append("Classes in ").append(path).append('\n');
+        previewText.append("Full results (").append(totalCount).append(" classes) written to file.\n\n");
+        String[] allLines = text.toString().split("\\R");
+        int shown = 0;
+        for (int i = 2; i < allLines.length && shown < previewCount; i++) {
+            previewText.append(allLines[i]).append('\n');
+            shown++;
+        }
+        text.setLength(0);
+        text.append(previewText);
     }
 }

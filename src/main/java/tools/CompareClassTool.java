@@ -39,6 +39,11 @@ public class CompareClassTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "lineNumbers", "Include line-number metadata", false);
         SchemaSupport.addBoolean(properties, "advancedLookup", "Search sibling archives for dependency resolution; JDK modules are included by default", false);
         SchemaSupport.addStringOrArray(properties, "classpath", "Additional classpath entries");
+        SchemaSupport.addString(properties, "className", "Fallback class name for both leftClassName and rightClassName");
+        JsonObject prefs = new JsonObject();
+        prefs.addProperty("type", "object");
+        prefs.addProperty("description", "Per-engine raw preferences passed to transformer-api");
+        properties.add("preferences", prefs);
         SchemaSupport.require(schema, "leftPath");
         return schema;
     }
