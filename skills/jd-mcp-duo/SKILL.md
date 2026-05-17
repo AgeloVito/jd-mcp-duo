@@ -41,9 +41,10 @@ wrapper 内置 JRE。平台包损坏时使用：
 ## 核心规则
 
 - **索引构建只能走 CLI**：`index_scope` 只能通过 CLI 执行，MCP 下不会自动建索引。首次执行 `search_in_jar`、`type_lookup`、`call_chain`、`find_references`、`method_overrides`、`type_hierarchy`、`resolve_symbol`、`resolve_stacktrace` 等依赖索引的查询前，必须先用 CLI 建索引。索引存在后，MCP 可正常查询。
-- **索引文件默认放到项目目录**：工具在不传 `--indexPath` 时默认写到 `~/.jd-mcp-duo/index.sqlite`，所有项目共用会导致索引文件无限膨胀。必须主动传 `--indexPath=./.jd-mcp-duo/index.sqlite` 写入项目目录，除非用户明确指定其他路径。
+- **索引文件放到分析目标的同级目录，禁止写入目标内部**：工具不传 `--indexPath` 时默认写到 `~/.jd-mcp-duo/index.sqlite`，所有项目共用会导致索引文件无限膨胀。必须主动传 `--indexPath={目标所在目录}/.jd-mcp-duo/index.sqlite`，**不可在分析目标的目录中创建文件**。如分析 `/path/to/target`，则索引写到 `/path/to/.jd-mcp-duo/index.sqlite`。除非用户明确指定其他路径或要求使用工具默认索引路径。
 - **大目录先评估规模**：对目录或多归档场景，先用 `analyze_directory` 预估类数量和归档规模，再决定索引范围。
 - **MCP 下控制返回数据量**：`search_in_jar`、`type_lookup`、`list_classes`、`list_dependencies`、`analyze_directory` 可能返回大量 JSON，超出上下文窗口。优先用 `--limit`/`--offset` 分页获取，或传 `--output=文件路径` 写全量到文件再读取。`totalResults` 始终为真实匹配总数，分页不丢失数据。
+- **输出文件禁止写入目标内部**：所有写文件的操作（`--output`、`--outputDir`、`--saveTo`、`save_all_sources` 等），输出路径必须指定到分析目标的同级或外部目录，**不可写入分析目标目录内部**。如分析 `/path/to/target`，则输出到 `/path/to/output/`。除非用户明确指定写入其他路径。
 - **重载消歧用 `descriptor`**：JVM 方法描述符，如 `(Ljava/lang/String;)V`。只描述参数和返回值，不含方法名。
 
 ## 常用任务映射
@@ -54,7 +55,7 @@ wrapper 内置 JRE。平台包损坏时使用：
 | 查看类信息           | `class_metadata`                         | 查看类、方法、字段、注解等元数据   |
 | 反编译指定类         | `decompile_class` / `decompile_advanced` | 默认使用 `auto`，异常时切换引擎    |
 | 批量导出源码         | `save_all_sources`                       | 走 CLI，输出到目录                 |
-| 建索引               | `index_scope`                            | 只能走 CLI，默认索引到 `./.jd-mcp-duo/index.sqlite` |
+| 建索引               | `index_scope`                            | 只能走 CLI，不传 `--indexPath` 时默认写到 `~/.jd-mcp-duo/index.sqlite` |
 | 搜索符号/字符串/资源 | `search_in_jar`                          | 首次或无索引时先 CLI 建索引        |
 | 查找类型             | `type_lookup`                            | 适合按类名、接口名、通配符定位类型 |
 | 分析调用链           | `call_chain`                             | 依赖索引，结果是静态调用图         |
