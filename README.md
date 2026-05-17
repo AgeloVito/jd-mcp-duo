@@ -207,16 +207,17 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo decompile_directory --path=./input --outputDir=./output --engine=jadx
 ```
 
-**`analyze_directory`** — Scan a directory for supported archives and report class counts and sizes without decompiling.
+**`analyze_directory`** — Scan a directory for supported archives and report class counts and sizes without decompiling. Supports `--offset`/`--limit` pagination.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Directory to analyze |
 | `recursive` | no | Recursively scan subdirectories (default: false) |
-| `limit` | no | Maximum archives to return (default: 200) |
+| `limit` | no | Maximum archives per page (default: 200) |
+| `offset` | no | Number of archives to skip for pagination (default: 0) |
 
 ```bash
-./bin/jd-mcp-duo analyze_directory --path=./libs
+./bin/jd-mcp-duo analyze_directory --path=./libs --limit=10 --offset=0
 ```
 
 **`batch_decompile`** — Decompile classes from a directory root, with optional `limit` and `outputDir`.
@@ -257,17 +258,18 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo index_scope --path=./app.jar --scopePath=./lib --scopeRecursive=true
 ```
 
-**`list_classes`** — List classes in an archive or directory with normalized names and package statistics.
+**`list_classes`** — List classes in an archive or directory with normalized names and package statistics. Supports `--offset`/`--limit` pagination.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Path to an archive or directory |
-| `limit` | no | Maximum classes to return (default: 200) |
+| `limit` | no | Maximum classes per page (default: 200) |
+| `offset` | no | Number of classes to skip for pagination (default: 0) |
 | `package` | no | Optional package prefix filter |
 | `detailed` | no | Include package statistics (default: false) |
 
 ```bash
-./bin/jd-mcp-duo list_classes --path=app.jar
+./bin/jd-mcp-duo list_classes --path=app.jar --limit=50 --offset=0
 ```
 
 **`class_metadata`** — Inspect class-level metadata: access flags, bytecode version, superclass, interfaces, module name, methods, fields, annotations, and constant pool statistics.
@@ -299,29 +301,37 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 
 ### Search and analysis
 
-**`search_in_jar`** — Index-based search across classes, methods, constructors, fields, string constants, and resource files. Supports `*` and `?` wildcards. Results include archive paths for scoped searches.
+**`search_in_jar`** — Index-based search across classes, methods, constructors, fields, string constants, and resource files. Supports `*` and `?` wildcards. Results include archive paths for scoped searches. Supports `--offset`/`--limit` pagination and `--output` for writing full results to a file.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Primary input path |
 | `query` | yes | Search term with wildcard support |
-| `type` | no | Filter: `any`, `type`, `constructor`, `method`, `field`, `string`, `module`, `service`, `manifest`, `xml`, `properties`, `json`, `yaml`, `text`, `config` |
+| `type` | no | Filter: `type`, `class`, `constructor`, `method`, `field`, `string`, `module`, `resource`, `xml`, `properties`, `service`, `manifest`, `yaml`, `json`, `all` |
+| `queryMode` | no | `plain` (default), `wildcard`, or `regex` |
+| `limit` | no | Maximum results per page (default: 50) |
+| `offset` | no | Number of results to skip for pagination (default: 0) |
+| `output` | no | Write full results to a file (bypasses pagination) |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
-./bin/jd-mcp-duo search_in_jar --path=app.jar --query=getUser* --type=method
+./bin/jd-mcp-duo search_in_jar --path=app.jar --query=getUser --type=method --limit=20 --offset=0
+./bin/jd-mcp-duo search_in_jar --path=app.jar --query='password' --type=string --output=/tmp/keys.txt
 ```
 
-**`type_lookup`** — Look up type declarations by exact name, wildcard, or regex across the current input and optional scope.
+**`type_lookup`** — Look up type declarations by exact name, wildcard, or regex across the current input and optional scope. Supports `--offset`/`--limit` pagination.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Primary input path |
-| `query` | yes | Type name (exact, `*pattern`, or `/regex/`) |
+| `query` | yes | Type name (exact, `*pattern`, or regex) |
+| `queryMode` | no | `plain` (default), `wildcard`, or `regex` |
+| `limit` | no | Maximum results per page (default: 50) |
+| `offset` | no | Number of results to skip for pagination (default: 0) |
 | `scopePath` | no | Multi-archive scope path |
 
 ```bash
-./bin/jd-mcp-duo type_lookup --path=app.jar --query='*Service' --scopePath=./libs
+./bin/jd-mcp-duo type_lookup --path=app.jar --query='*Service' --scopePath=./libs --limit=20 --offset=0
 ```
 
 **`type_hierarchy`** — Build supertype and subtype hierarchy trees for a class. Searches across all scoped archives using the SQLite index.
@@ -503,14 +513,15 @@ If `path` points to a single `.class` file, `className` is inferred automaticall
 ./bin/jd-mcp-duo build_skeleton --path=./libs --outputDir=./skeleton
 ```
 
-**`list_dependencies`** — Scan an archive and list embedded Maven dependencies found under META-INF/maven/. Outputs as JSON or GAV text format.
+**`list_dependencies`** — Scan an archive and list embedded Maven dependencies found under META-INF/maven/. Outputs as JSON or GAV text format. Supports `--offset`/`--limit` pagination.
 
 | Parameter | Required | Description |
 |---|---|---|
 | `path` | yes | Path to a supported archive |
 | `format` | no | `json` (default) or `text` (GAV per line) |
 | `output` | no | File path to write the dependency list |
-| `limit` | no | Maximum dependencies to return (default: 500) |
+| `limit` | no | Maximum dependencies per page (default: 500) |
+| `offset` | no | Number of dependencies to skip for pagination (default: 0) |
 
 ```bash
 ./bin/jd-mcp-duo list_dependencies --path=app.jar --format=text --output=deps.txt

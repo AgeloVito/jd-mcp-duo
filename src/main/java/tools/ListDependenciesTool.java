@@ -71,9 +71,9 @@ public class ListDependenciesTool implements MCPTool {
 
         int totalDeps = deps.size();
         List<Dep> shown = deps;
-        if (limit > 0 && shown.size() > limit) {
-            shown = shown.subList(0, limit);
-        }
+        int start = Math.min(offset, totalDeps);
+        int end = limit > 0 ? Math.min(offset + limit, totalDeps) : totalDeps;
+        shown = shown.subList(start, end);
 
         if (outputFile != null) {
             if (outputFile.getParent() != null) {
@@ -109,7 +109,6 @@ public class ListDependenciesTool implements MCPTool {
         structured.addProperty("totalCount", totalDeps);
         structured.addProperty("showing", shown.size());
         int _total = totalDeps;
-            jsonDeps = JsonUtils.paginate(jsonDeps, offset, limit);
         structured.addProperty("totalResults", _total);
         structured.addProperty("offset", offset);
         structured.add("dependencies", jsonDeps);

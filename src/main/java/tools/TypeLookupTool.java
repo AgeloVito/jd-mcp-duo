@@ -68,7 +68,7 @@ public class TypeLookupTool implements MCPTool {
                 continue;
             }
             totalMatched[0]++;
-            if (matches.size() < limit) {
+            if (totalMatched[0] > offset && matches.size() < limit) {
                 JsonObject item = new JsonObject();
                 item.addProperty("sourcePath", scopedClass.sourcePath().toString());
                 item.addProperty("internalName", scopedClass.indexedClass().internalName());
@@ -86,7 +86,6 @@ public class TypeLookupTool implements MCPTool {
         structured.addProperty("indexPath", scope.databasePath().toString());
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
         int _total = totalMatched[0];
-        matches = JsonUtils.paginate(matches, offset, limit);
         structured.addProperty("totalResults", _total);
         structured.addProperty("offset", offset);
         structured.add("matches", matches);

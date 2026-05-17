@@ -7,7 +7,7 @@
 
     <groupId>io.github.agelovito</groupId>
     <artifactId>jd-mcp-duo</artifactId>
-    <version>4.2.5.3</version>
+    <version>4.2.5.4</version>
     <packaging>jar</packaging>
 
     <name>JD MCP Duo</name>

@@ -16,6 +16,7 @@ import support.ToolResults;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
 
@@ -40,6 +41,7 @@ public class SearchInJarTool implements MCPTool {
         SchemaSupport.addBoolean(properties, "distinct", "Deduplicate string results by text", false);
         SchemaSupport.addInteger(properties, "limit", "Maximum number of results", 50);
         SchemaSupport.addInteger(properties, "offset", "Number of results to skip for pagination", 0);
+        SchemaSupport.addString(properties, "output", "Optional output file path to write full results");
         SchemaSupport.require(schema, "path");
         SchemaSupport.require(schema, "query");
         return schema;
@@ -54,6 +56,9 @@ public class SearchInJarTool implements MCPTool {
         boolean distinct = JsonUtils.getBoolean(arguments, "distinct", false);
         int limit = JsonUtils.getInt(arguments, "limit", 50);
         int offset = JsonUtils.getInt(arguments, "offset", 0);
+        Path outputPath = extractOutputPath(arguments);
+        int effectiveLimit = outputPath != null ? Integer.MAX_VALUE : limit;
+        int effectiveOffset = outputPath != null ? 0 : offset;
         long startedAt = System.nanoTime();
         Pattern pattern = buildPattern(query, queryMode, caseSensitive);
         Path primaryPath = JsonUtils.getRequiredPath(arguments, "path");
@@ -75,17 +80,25 @@ public class SearchInJarTool implements MCPTool {
         StringBuilder text = new StringBuilder();
         text.append("Search results for ").append(query).append("\n\n");
 
-        appendModuleResults(scope, type, pattern, results, text, limit, totalMatched);
-        appendClassResults(scope, type, pattern, results, text, limit, totalMatched);
-        appendFieldResults(scope, type, pattern, results, text, limit, totalMatched);
-        appendMethodResults(scope, type, pattern, results, text, limit, totalMatched);
-        appendStringResults(scope, type, pattern, results, text, limit, distinct, totalMatched);
-        int resourceResults = appendResourceResults(scope, type, pattern, results, text, limit, null, totalMatched);
+        appendModuleResults(scope, type, pattern, results, text, effectiveLimit, effectiveOffset, totalMatched);
+        appendClassResults(scope, type, pattern, results, text, effectiveLimit, effectiveOffset, totalMatched);
+        appendFieldResults(scope, type, pattern, results, text, effectiveLimit, effectiveOffset, totalMatched);
+        appendMethodResults(scope, type, pattern, results, text, effectiveLimit, effectiveOffset, totalMatched);
+        appendStringResults(scope, type, pattern, results, text, effectiveLimit, effectiveOffset, distinct, totalMatched);
+        int resourceResults = appendResourceResults(scope, type, pattern, results, text, effectiveLimit, effectiveOffset, null, totalMatched);
         // Performance note: for plain mode on large archives, consider passing
         // likeEncode(query) as entryPathLike to resources() for SQL-level pre-filtering.
         // Currently disabled because queries may match text content, not just path.
 
+        if (outputPath != null) {
+            Files.writeString(outputPath, text.toString());
+            truncateToPreview(text, results, query, totalMatched);
+        }
+
         JsonObject structured = new JsonObject();
+        if (outputPath != null) {
+            structured.addProperty("outputFile", outputPath.toString());
+        }
         structured.addProperty("query", query);
         structured.addProperty("type", type);
         structured.addProperty("queryMode", queryMode);
@@ -97,7 +110,6 @@ public class SearchInJarTool implements MCPTool {
         IndexMetadataSupport.addIndexFailureMetadata(structured, scope);
         structured.addProperty("resourceIndexedResults", resourceResults);
         int _total = totalMatched[0];
-        results = JsonUtils.paginate(results, offset, limit);
         structured.addProperty("totalResults", _total);
         structured.addProperty("offset", offset);
         structured.add("results", results);
@@ -113,6 +125,7 @@ public class SearchInJarTool implements MCPTool {
                                              JsonArray results,
                                              StringBuilder text,
                                              int limit,
+                                             int offset,
                                              String pathLike,
                                              int[] totalMatched) throws Exception {
         if (!matchesType(type, "resource", "xml", "properties", "service", "services", "manifest", "yaml", "yml", "json", "all", "allresources")) {
@@ -120,9 +133,6 @@ public class SearchInJarTool implements MCPTool {
         }
         int added = 0;
         for (ScopedResource scopedResource : scope.resources(resourceTypesFor(type), pathLike)) {
-            if (results.size() >= limit) {
-                break;
-            }
             var resource = scopedResource.indexedResource();
             boolean pathMatch = pattern.matcher(resource.entryPath()).find();
             Integer lineNumber = null;
@@ -142,6 +152,11 @@ public class SearchInJarTool implements MCPTool {
             if (!pathMatch && !contentMatch) {
                 continue;
             }
+            totalMatched[0]++;
+            added++;
+            if (totalMatched[0] <= offset || results.size() >= limit) {
+                continue;
+            }
             JsonObject result = new JsonObject();
             result.addProperty("kind", "resource");
             result.addProperty("sourcePath", scopedResource.sourcePath().toString());
@@ -156,8 +171,6 @@ public class SearchInJarTool implements MCPTool {
                 result.addProperty("snippet", snippet);
             }
             results.add(result);
-            totalMatched[0]++;
-            added++;
             text.append("[resource] ").append(resource.entryPath())
                     .append(" @ ").append(scopedResource.sourcePath());
             if (lineNumber != null) {
@@ -180,36 +193,37 @@ public class SearchInJarTool implements MCPTool {
         };
     }
 
-    private static void appendModuleResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int[] totalMatched) throws Exception {
+    private static void appendModuleResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int offset, int[] totalMatched) throws Exception {
         if (!matchesType(type, "module", "all")) {
             return;
         }
         for (String module : scope.modules()) {
-            if (results.size() >= limit) {
-                return;
-            }
             if (!pattern.matcher(module).find()) {
+                continue;
+            }
+            totalMatched[0]++;
+            if (totalMatched[0] <= offset || results.size() >= limit) {
                 continue;
             }
             JsonObject result = new JsonObject();
             result.addProperty("kind", "module");
             result.addProperty("moduleName", module);
             results.add(result);
-            totalMatched[0]++;
             text.append("[module] ").append(module).append('\n');
         }
     }
 
-    private static void appendClassResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int[] totalMatched) throws Exception {
+    private static void appendClassResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int offset, int[] totalMatched) throws Exception {
         if (!matchesType(type, "type", "class", "all")) {
             return;
         }
         for (ScopedClass scopedClass : scope.classes()) {
-            if (results.size() >= limit) {
-                return;
-            }
             IndexedClass indexedClass = scopedClass.indexedClass();
             if (!pattern.matcher(indexedClass.displayName()).find() && !pattern.matcher(indexedClass.internalName()).find()) {
+                continue;
+            }
+            totalMatched[0]++;
+            if (totalMatched[0] <= offset || results.size() >= limit) {
                 continue;
             }
             JsonObject result = new JsonObject();
@@ -217,22 +231,22 @@ public class SearchInJarTool implements MCPTool {
             result.addProperty("sourcePath", scopedClass.sourcePath().toString());
             result.addProperty("className", indexedClass.displayName());
             results.add(result);
-            totalMatched[0]++;
             text.append("[type] ").append(indexedClass.displayName()).append(" @ ").append(scopedClass.sourcePath()).append('\n');
         }
     }
 
-    private static void appendFieldResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int[] totalMatched) throws Exception {
+    private static void appendFieldResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int offset, int[] totalMatched) throws Exception {
         if (!matchesType(type, "field", "all")) {
             return;
         }
         for (ScopedClass scopedClass : scope.classes()) {
             IndexedClass indexedClass = scopedClass.indexedClass();
             for (IndexedField field : indexedClass.fields()) {
-                if (results.size() >= limit) {
-                    return;
-                }
                 if (!pattern.matcher(field.name()).find() && !pattern.matcher(field.displayName()).find()) {
+                    continue;
+                }
+                totalMatched[0]++;
+                if (totalMatched[0] <= offset || results.size() >= limit) {
                     continue;
                 }
                 JsonObject result = new JsonObject();
@@ -242,23 +256,19 @@ public class SearchInJarTool implements MCPTool {
                 result.addProperty("name", field.name());
                 result.addProperty("descriptor", field.descriptor());
                 results.add(result);
-            totalMatched[0]++;
                 text.append("[field] ").append(field.displayName()).append(" : ").append(field.descriptor())
                         .append(" @ ").append(scopedClass.sourcePath()).append('\n');
             }
         }
     }
 
-    private static void appendMethodResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int[] totalMatched) throws Exception {
+    private static void appendMethodResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int offset, int[] totalMatched) throws Exception {
         if (!matchesType(type, "method", "constructor", "all")) {
             return;
         }
         for (ScopedClass scopedClass : scope.classes()) {
             IndexedClass indexedClass = scopedClass.indexedClass();
             for (IndexedMethod method : indexedClass.methods()) {
-                if (results.size() >= limit) {
-                    return;
-                }
                 boolean constructor = method.ref().isConstructor();
                 if (constructor && !matchesType(type, "constructor", "all")) {
                     continue;
@@ -270,6 +280,10 @@ public class SearchInJarTool implements MCPTool {
                 if (!pattern.matcher(method.ref().name()).find() && !pattern.matcher(displayName).find()) {
                     continue;
                 }
+                totalMatched[0]++;
+                if (totalMatched[0] <= offset || results.size() >= limit) {
+                    continue;
+                }
                 JsonObject result = new JsonObject();
                 result.addProperty("kind", constructor ? "constructor" : "method");
                 result.addProperty("sourcePath", scopedClass.sourcePath().toString());
@@ -277,27 +291,27 @@ public class SearchInJarTool implements MCPTool {
                 result.addProperty("name", method.ref().name());
                 result.addProperty("descriptor", method.ref().descriptor());
                 results.add(result);
-            totalMatched[0]++;
                 text.append('[').append(constructor ? "constructor" : "method").append("] ")
                         .append(displayName).append(" @ ").append(scopedClass.sourcePath()).append('\n');
             }
         }
     }
 
-    private static void appendStringResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, boolean distinct, int[] totalMatched) throws Exception {
+    private static void appendStringResults(PersistentScopeIndex scope, String type, Pattern pattern, JsonArray results, StringBuilder text, int limit, int offset, boolean distinct, int[] totalMatched) throws Exception {
         if (!matchesType(type, "string", "all")) {
             return;
         }
         java.util.HashSet<String> seenTexts = distinct ? new java.util.HashSet<>() : null;
         for (ScopedStringHit scopedHit : scope.strings()) {
-            if (results.size() >= limit) {
-                return;
-            }
             var stringHit = scopedHit.stringHit();
             if (!pattern.matcher(stringHit.text()).find()) {
                 continue;
             }
             if (distinct && !seenTexts.add(stringHit.text())) {
+                continue;
+            }
+            totalMatched[0]++;
+            if (totalMatched[0] <= offset || results.size() >= limit) {
                 continue;
             }
             JsonObject result = new JsonObject();
@@ -308,7 +322,6 @@ public class SearchInJarTool implements MCPTool {
             result.addProperty("descriptor", stringHit.descriptor());
             result.addProperty("text", stringHit.text());
             results.add(result);
-            totalMatched[0]++;
             text.append("[string] ").append(stringHit.owner().replace('/', '.'))
                     .append('#').append(stringHit.methodName())
                     .append(" -> ").append(stringHit.text())
@@ -362,5 +375,39 @@ public class SearchInJarTool implements MCPTool {
         }
         like.append('%');
         return like.toString();
+    }
+
+    private static Path extractOutputPath(JsonObject arguments) {
+        String outputStr = JsonUtils.getString(arguments, "output", "");
+        if (outputStr.isBlank()) {
+            return null;
+        }
+        return JsonUtils.getPath(arguments, "output");
+    }
+
+    private static void truncateToPreview(StringBuilder text, JsonArray results,
+                                          String query, int[] totalMatched) {
+        int previewCount = Math.min(results.size(), 20);
+        JsonArray preview = new JsonArray();
+        for (int i = 0; i < previewCount; i++) {
+            preview.add(results.get(i));
+        }
+        while (results.size() > 0) {
+            results.remove(results.size() - 1);
+        }
+        for (int i = 0; i < preview.size(); i++) {
+            results.add(preview.get(i));
+        }
+        StringBuilder previewText = new StringBuilder();
+        previewText.append("Search results for ").append(query).append('\n');
+        previewText.append("Full results (").append(totalMatched[0]).append(" matches) written to file.\n\n");
+        String[] allLines = text.toString().split("\\R");
+        int shown = 0;
+        for (int i = 2; i < allLines.length && shown < previewCount; i++) {
+            previewText.append(allLines[i]).append('\n');
+            shown++;
+        }
+        text.setLength(0);
+        text.append(previewText);
     }
 }

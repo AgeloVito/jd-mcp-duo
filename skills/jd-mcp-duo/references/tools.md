@@ -69,8 +69,8 @@
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
-| `analyze_directory` | MCP | 分析目录下支持归档，汇总类数量、大小和文件分布。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `limit:integer=200`, `offset:integer=0` |
-| `list_classes` | MCP | 列出归档或目录中的类名、内部名和包统计。 | `path*:string`, `package:string`, `releaseVersion:integer`, `includeInner:boolean=false`, `detailed:boolean=false`, `limit:integer=200`, `offset:integer=0` |
+| `analyze_directory` | MCP | 分析目录下支持归档，汇总类数量、大小和文件分布。支持翻页。 | `path*:string`, `recursive:boolean=false`, `pattern:string`, `limit:integer=200`, `offset:integer=0` |
+| `list_classes` | MCP | 列出归档或目录中的类名、内部名和包统计。支持翻页。 | `path*:string`, `package:string`, `releaseVersion:integer`, `includeInner:boolean=false`, `detailed:boolean=false`, `limit:integer=200`, `offset:integer=0` |
 | `class_metadata` | MCP | 查看类级元数据、方法、字段、注解、访问标志和字节码版本。 | `path*:string`, `className:string`, `releaseVersion:integer` |
 | `source_quality_report` | CLI | 抽样或全量反编译类，统计成功率、patch、fallback、失败原因和质量指标。 | `path*:string`, `engine:string`, `releaseVersion:integer`, `attemptTimeoutMillis:integer=30000`, `lineNumbers:boolean`, `advancedLookup:boolean=false`, `classpath:string|array`, `classLimit:integer=100` |
 
@@ -78,7 +78,7 @@
 
 | 工具 | 推荐 | 功能 | 参数 |
 |------|------|------|------|
-| `search_in_jar` | CLI | 搜索类、构造器、方法、字段、字符串、模块和资源。MCP 下禁用建索引。 | `path*:string`, `query*:string`, `type:string`, `queryMode:string`, `caseSensitive:boolean=false`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `distinct:boolean=false`, `limit:integer=50`, `offset:integer=0` |
+| `search_in_jar` | CLI | 搜索类、构造器、方法、字段、字符串、模块和资源。MCP 下禁用建索引。支持 `--output` 全量写入文件。 | `path*:string`, `query*:string`, `type:string`, `queryMode:string`, `caseSensitive:boolean=false`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `distinct:boolean=false`, `limit:integer=50`, `offset:integer=0`, `output:string` |
 | `type_lookup` | CLI | 按精确名、通配符或正则查找类型。MCP 下禁用建索引。 | `path*:string`, `query*:string`, `queryMode:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `caseSensitive:boolean=false`, `limit:integer=50`, `offset:integer=0` |
 | `type_hierarchy` | CLI | 展示目标类父类、接口、子类和实现层次。MCP 下禁用建索引。 | `path*:string`, `className*:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=8`, `maxNodes:integer=256` |
 | `find_references` | CLI | 查找类型、字段或方法引用。MCP 下禁用建索引。 | `path*:string`, `kind*:string`, `className*:string`, `fieldName:string`, `methodName:string`, `descriptor:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `depth:integer=1`, `maxNodes:integer=256` |
@@ -93,7 +93,7 @@
 | `resolve_stacktrace` | CLI | 把 Java stacktrace 或日志帧解析到类、方法、候选归档和反编译行映射。MCP 下禁用建索引。 | `path*:string`, `text:string`, `textPath:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `maxFrames:integer=200`, `lineMappingLimitPerFrame:integer=1` |
 | `analyze_log` | CLI | `resolve_stacktrace` 的别名入口，用于日志分析。MCP 下禁用建索引。 | `path*:string`, `text:string`, `textPath:string`, `scopePath:string`, `scopeRecursive:boolean=false`, `indexPath:string`, `engine:string`, `attemptTimeoutMillis:integer=30000`, `maxFrames:integer=200`, `lineMappingLimitPerFrame:integer=1` |
 | `source_lookup` | MCP | 从本地 sources jar、兄弟 `-sources.jar` 或 Maven 坐标查找原始源码。 | `path:string`, `className:string`, `sourceJarPath:string`, `groupId:string`, `artifactId:string`, `version:string`, `sha1:string`, `sha1File:string`, `configPath:string`, `searchProvider:string`, `searchBaseUrl:string`, `remoteContentBaseUrl:string`, `proxyHost:string`, `proxyPort:string`, `username:string`, `password:string`, `bearerToken:string`, `saveTo:string` |
-| `list_dependencies` | MCP | 扫描 `META-INF/maven/**/pom.properties` 并列出嵌入 Maven 坐标。 | `path*:string`, `format:string`, `output:string`, `limit:integer=500`, `offset:integer=0` |
+| `list_dependencies` | MCP | 扫描 `META-INF/maven/**/pom.properties` 并列出嵌入 Maven 坐标。支持翻页。 | `path*:string`, `format:string`, `output:string`, `limit:integer=500`, `offset:integer=0` |
 | `build_skeleton` | MCP | 从归档推断依赖坐标并生成 Maven/Gradle 构建骨架。 | `path*:string`, `files:string|array`, `outputDir:string`, `configPath:string`, `searchProvider:string`, `searchBaseUrl:string`, `remoteContentBaseUrl:string`, `proxyHost:string`, `proxyPort:string`, `username:string`, `password:string`, `bearerToken:string` |
 
 ## 字节码、CFG、比较与诊断

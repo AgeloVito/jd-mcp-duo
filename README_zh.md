@@ -196,10 +196,10 @@ claude mcp get jd-mcp-duo
 ./bin/jd-mcp-duo decompile_directory --path=./input --outputDir=./output --engine=jadx
 ```
 
-**`analyze_directory`** — 扫描目录中的归档文件，报告类数量和大小，不进行反编译。
+**`analyze_directory`** — 扫描目录中的归档文件，报告类数量和大小，不进行反编译。支持 `--offset`/`--limit` 翻页。
 
 ```bash
-./bin/jd-mcp-duo analyze_directory --path=./libs
+./bin/jd-mcp-duo analyze_directory --path=./libs --limit=10 --offset=0
 ```
 
 **`batch_decompile`** — 从目录根路径批量反编译指定的多个类。
@@ -229,10 +229,10 @@ claude mcp get jd-mcp-duo
 ./bin/jd-mcp-duo index_scope --path=./app.jar --scopePath=./lib --scopeRecursive=true
 ```
 
-**`list_classes`** — 列出归档或目录中的所有类，包含规范化的类名和包统计信息。
+**`list_classes`** — 列出归档或目录中的所有类，包含规范化的类名和包统计信息。支持 `--offset`/`--limit` 翻页。
 
 ```bash
-./bin/jd-mcp-duo list_classes --path=app.jar
+./bin/jd-mcp-duo list_classes --path=app.jar --limit=50 --offset=0
 ```
 
 **`class_metadata`** — 查看类级别元数据：访问标志、字节码版本、父类、接口、模块名、方法、字段、注解和常量池统计。
@@ -255,23 +255,28 @@ claude mcp get jd-mcp-duo
 
 ### 搜索与分析
 
-**`search_in_jar`** — 基于索引搜索类、方法、字段、字符串常量和资源文件。支持 `*` 和 `?` 通配符。
+**`search_in_jar`** — 基于索引搜索类、方法、字段、字符串常量和资源文件。支持 `*` 和 `?` 通配符。支持 `--offset`/`--limit` 翻页和 `--output` 全量写入文件。
 
 | 参数 | 必填 | 说明 |
 |---|---|---|
 | `path` | 是 | 主输入路径 |
 | `query` | 是 | 搜索词（支持通配符） |
-| `type` | 否 | 过滤类型：`any`、`type`、`constructor`、`method`、`field`、`string`、`module` 等 |
+| `type` | 否 | 过滤类型：`type`、`class`、`constructor`、`method`、`field`、`string`、`module`、`resource`、`xml`、`properties`、`service`、`manifest`、`yaml`、`json`、`all` |
+| `queryMode` | 否 | `plain`（默认）、`wildcard` 或 `regex` |
+| `limit` | 否 | 每页最大结果数（默认：50） |
+| `offset` | 否 | 翻页跳过条数（默认：0） |
+| `output` | 否 | 全量结果写入文件（绕过翻页限制） |
 | `scopePath` | 否 | 多归档 scope 路径 |
 
 ```bash
-./bin/jd-mcp-duo search_in_jar --path=app.jar --query=getUser* --type=method
+./bin/jd-mcp-duo search_in_jar --path=app.jar --query=getUser --type=method --limit=20 --offset=0
+./bin/jd-mcp-duo search_in_jar --path=app.jar --query='password' --type=string --output=/tmp/keys.txt
 ```
 
-**`type_lookup`** — 跨当前输入和可选 scope 按精确名称、通配符或正则查找类型声明。
+**`type_lookup`** — 跨当前输入和可选 scope 按精确名称、通配符或正则查找类型声明。支持 `--offset`/`--limit` 翻页。
 
 ```bash
-./bin/jd-mcp-duo type_lookup --path=app.jar --query='*Service' --scopePath=./libs
+./bin/jd-mcp-duo type_lookup --path=app.jar --query='*Service' --scopePath=./libs --limit=20 --offset=0
 ```
 
 **`type_hierarchy`** — 构建类的父类和子类层次树。使用 SQLite 索引跨所有 scope 归档搜索。
@@ -382,13 +387,15 @@ claude mcp get jd-mcp-duo
 ./bin/jd-mcp-duo build_skeleton --path=./libs --outputDir=./skeleton
 ```
 
-**`list_dependencies`** — 扫描归档，列出 META-INF/maven/ 下所有嵌入式 Maven 依赖。支持 JSON 或纯文本 GAV 格式输出，可选写入文件。
+**`list_dependencies`** — 扫描归档，列出 META-INF/maven/ 下所有嵌入式 Maven 依赖。支持 JSON 或纯文本 GAV 格式输出，可选写入文件。支持 `--offset`/`--limit` 翻页。
 
 | 参数 | 必填 | 说明 |
 |---|---|---|
 | `path` | 是 | 归档路径 |
 | `format` | 否 | `json`（默认）或 `text`（每行一个 GAV） |
 | `output` | 否 | 将依赖清单写入指定文件 |
+| `limit` | 否 | 每页最大依赖数（默认：500） |
+| `offset` | 否 | 翻页跳过条数（默认：0） |
 
 ```bash
 ./bin/jd-mcp-duo list_dependencies --path=app.jar --format=text --output=deps.txt

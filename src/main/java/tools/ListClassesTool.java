@@ -65,9 +65,9 @@ public class ListClassesTool implements MCPTool {
                     .toList();
 
             int totalCount = classes.size();
-            if (limit > 0 && classes.size() > limit) {
-                classes = classes.subList(0, limit);
-            }
+            int start = Math.min(offset, totalCount);
+            int end = limit > 0 ? Math.min(offset + limit, totalCount) : totalCount;
+            classes = classes.subList(start, end);
 
             Map<String, Integer> packageCounts = new TreeMap<>();
             JsonArray classArray = new JsonArray();
@@ -107,7 +107,6 @@ public class ListClassesTool implements MCPTool {
                 text.append("... ").append(totalCount - classes.size()).append(" more classes not shown\n");
             }
             int _total = totalCount;
-            classArray = JsonUtils.paginate(classArray, offset, limit);
             structured.addProperty("totalResults", _total);
             structured.addProperty("offset", offset);
             structured.add("classes", classArray);

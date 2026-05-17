@@ -107,13 +107,15 @@ type_hierarchy(path=jar, className=类)
 ### 类型、符号与资源检索
 
 ```text
-search_in_jar(path=jar, query="关键词", type=string)
+search_in_jar(path=jar, query="关键词", type=string, limit=50, offset=0)
 search_in_jar(path=jar, query="*Controller", type=type, queryMode=wildcard)
 search_in_jar(path=jar, query="*.xml", type=resource, queryMode=wildcard)
-type_lookup(path=jar, query="*Service", queryMode=wildcard)
+search_in_jar(path=jar, query="password", type=string, output=result.txt)
+type_lookup(path=jar, query="*Service", queryMode=wildcard, limit=20, offset=0)
 ```
 
 `search_in_jar.type` 支持 `type`、`class`、`constructor`、`method`、`field`、`string`、`module`、`resource`、`xml`、`properties`、`service`、`manifest`、`yaml`、`json`、`all`。
+翻页用 `--limit`/`--offset`，全量输出用 `--output=文件路径`。不传 `--output` 时分页返回，totalResults 始终是真实匹配总数。
 
 ### 依赖、版本与源码关联
 
@@ -145,9 +147,9 @@ remove_unnecessary_casts(path=java_or_jar, className=类, saveTo=out.java)
 | 反编译整个归档 | `save_all_sources` | `path`, `output`；输出目录或 `.jar` 决定格式 |
 | 反编译目录下所有支持文件 | `decompile_directory` | `path`, `outputDir`, `recursive` |
 | 反编译指定类 | `decompile_class` / `decompile_advanced` | `path`, `className`, `engine` |
-| 搜索类/方法/字段/字符串/资源 | `search_in_jar` | `path`, `query`, `type`, `queryMode` |
-| 查找类型 | `type_lookup` | `path`, `query`, `queryMode` |
-| 列类清单 | `list_classes` | `path`, `package`, `includeInner`, `limit` |
+| 搜索类/方法/字段/字符串/资源 | `search_in_jar` | `path`, `query`, `type`, `queryMode`, `limit`, `offset`, `output` |
+| 查找类型 | `type_lookup` | `path`, `query`, `queryMode`, `limit`, `offset` |
+| 列类清单 | `list_classes` | `path`, `package`, `includeInner`, `limit`, `offset` |
 | 类元数据 | `class_metadata` | `path`, `className` |
 | 调用链 | `call_chain` | `path`, `className`, `methodName`, `descriptor`, `direction`, `depth` |
 | 引用查询 | `find_references` | `kind`, `className`, `fieldName`/`methodName`, `descriptor` |
