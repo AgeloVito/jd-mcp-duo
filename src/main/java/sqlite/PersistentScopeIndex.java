@@ -766,6 +766,7 @@ public final class PersistentScopeIndex {
             execute(connection, "PRAGMA busy_timeout=5000");
             execute(connection, "PRAGMA journal_mode=WAL");
             execute(connection, "PRAGMA synchronous=NORMAL");
+            execute(connection, "PRAGMA auto_vacuum=INCREMENTAL");
             execute(connection, """
                     CREATE TABLE IF NOT EXISTS archives (
                         archive_path TEXT PRIMARY KEY,
@@ -940,8 +941,14 @@ public final class PersistentScopeIndex {
                     }
                 }
             }
+            System.err.printf("\r[jd-mcp-duo] indexing: complete — %d archives, %d new%n", total, newCount);
+            try {
+                execute(connection, "PRAGMA wal_checkpoint(PASSIVE)");
+                execute(connection, "PRAGMA optimize");
+            } catch (SQLException ignored) {
+                // maintenance pragmas are best-effort; don't fail indexing for them
+            }
         }
-        System.err.printf("\r[jd-mcp-duo] indexing: complete — %d archives, %d new%n", total, newCount);
         return new IndexingResult(List.copyOf(indexedInputs), List.copyOf(failures));
     }
 
