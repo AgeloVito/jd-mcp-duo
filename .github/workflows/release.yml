@@ -18,7 +18,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
@@ -43,7 +43,7 @@ jobs:
     needs: jar
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
@@ -80,7 +80,7 @@ jobs:
     needs: jar
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
@@ -117,7 +117,7 @@ jobs:
     needs: jar
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
@@ -154,7 +154,7 @@ jobs:
     needs: jar
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
